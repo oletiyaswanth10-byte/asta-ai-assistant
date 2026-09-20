@@ -1,48 +1,51 @@
-const API_URL = "http://127.0.0.1:8000";
+// ============================================================
+// ASTA AI - FRONTEND
+// ============================================================
+
+const API_URL = "https://asta-ai-assistant.onrender.com";
 
 
-/* ==================================================
-   SEND MESSAGE
-================================================== */
+// ============================================================
+// DOM ELEMENTS
+// ============================================================
+
+const messageInput = document.getElementById("messageInput");
+const chatContainer = document.getElementById("chatContainer");
+const welcomeScreen = document.getElementById("welcomeScreen");
+
+
+// ============================================================
+// SEND MESSAGE
+// ============================================================
 
 async function sendMessage() {
 
-    const input = document.getElementById("message");
-
-    const chatBox = document.getElementById("chat-box");
-
-    const sendButton = document.getElementById("send-button");
-
-    const message = input.value.trim();
-
+    const message = messageInput.value.trim();
 
     if (!message) {
         return;
     }
 
-
-    const welcome = document.querySelector(".welcome");
-
-    if (welcome) {
-        welcome.remove();
+    // Hide welcome screen
+    if (welcomeScreen) {
+        welcomeScreen.style.display = "none";
     }
 
-
+    // Show user message
     addMessage("user", message);
 
+    // Clear input
+    messageInput.value = "";
 
-    input.value = "";
+    // Reset textarea height
+    messageInput.style.height = "auto";
 
-    autoResize(input);
-
-    sendButton.disabled = true;
-
-
-    const loading = addMessage(
+    // Show thinking message
+    const thinkingId = addMessage(
         "assistant",
-        "Thinking..."
+        "Asta is thinking...",
+        true
     );
-
 
     try {
 
@@ -61,399 +64,588 @@ async function sendMessage() {
             }
         );
 
-
         if (!response.ok) {
-            throw new Error("Server error");
+            throw new Error(
+                `Server error: ${response.status}`
+            );
         }
-
 
         const data = await response.json();
 
+        // Remove thinking message
+        removeMessage(thinkingId);
 
-        loading.querySelector(
-            ".message-content"
-        ).textContent = data.response;
-
+        // Show response
+        addMessage(
+            "assistant",
+            data.response || "I couldn't generate a response."
+        );
 
     } catch (error) {
 
-        console.error(error);
+        console.error("Chat error:", error);
 
+        removeMessage(thinkingId);
 
-        loading.querySelector(
-            ".message-content"
-        ).textContent =
-            "❌ Could not connect to Asta. Make sure the backend and Ollama are running.";
-
-    } finally {
-
-        sendButton.disabled = false;
-
-        input.focus();
-
-        scrollToBottom();
+        addMessage(
+            "assistant",
+            "❌ I couldn't connect to Asta. Please try again."
+        );
     }
+
+    scrollToBottom();
 }
 
 
-/* ==================================================
-   ADD MESSAGE
-================================================== */
+// ============================================================
+// ADD MESSAGE
+// ============================================================
 
-function addMessage(type, text) {
+function addMessage(role, text, temporary = false) {
 
-    const chatBox =
-        document.getElementById("chat-box");
+    const messageId =
+        "message-" +
+        Date.now() +
+        "-" +
+        Math.random()
+            .toString(36)
+            .substring(2, 8);
 
+    const messageDiv = document.createElement("div");
 
-    const message =
-        document.createElement("div");
+    messageDiv.className =
+        `message ${role}-message`;
 
+    messageDiv.id = messageId;
 
-    message.className =
-        `message ${type}`;
+    // Avatar
+    const avatar = document.createElement("div");
 
+    avatar.className = "message-avatar";
 
-    message.innerHTML = `
-        <div class="message-content">
-            ${escapeHTML(text)}
-        </div>
-    `;
+    avatar.textContent =
+        role === "user" ? "You" : "A";
 
+    // Content
+    const content = document.createElement("div");
 
-    chatBox.appendChild(message);
+    content.className = "message-content";
 
+    // Name
+    const name = document.createElement("div");
+
+    name.className = "message-name";
+
+    name.textContent =
+        role === "user" ? "You" : "Asta";
+
+    // Text
+    const textElement = document.createElement("div");
+
+    textElement.className = "message-text";
+
+    textElement.innerHTML =
+        formatMessage(text);
+
+    content.appendChild(name);
+    content.appendChild(textElement);
+
+    messageDiv.appendChild(avatar);
+    messageDiv.appendChild(content);
+
+    chatContainer.appendChild(messageDiv);
 
     scrollToBottom();
 
-
-    return message;
+    return messageId;
 }
 
 
-/* ==================================================
-   ESCAPE HTML
-================================================== */
+// ============================================================
+// FORMAT MESSAGE
+// ============================================================
 
-function escapeHTML(text) {
+function formatMessage(text) {
 
-    const div =
-        document.createElement("div");
+    if (!text) {
+        return "";
+    }
 
+    // Escape HTML
+    let safeText = escapeHtml(text);
+
+    // Code blocks
+    safeText = safeText.replace(
+        /```([\s\S]*?)```/g,
+        function(match, code) {
+
+            return `
+                <pre class="code-block"><code>${code.trim()}</code></pre>
+            `;
+        }
+    );
+
+    // Inline code
+    safeText = safeText.replace(
+        /`([^`]+)`/g,
+        "<code>$1</code>"
+    );
+
+    // Bold
+    safeText = safeText.replace(
+        /\*\*(.*?)\*\*/g,
+        "<strong>$1</strong>"
+    );
+
+    // Italic
+    safeText = safeText.replace(
+        /\*(.*?)\*/g,
+        "<em>$1</em>"
+    );
+
+    // New lines
+    safeText = safeText.replace(
+        /\n/g,
+        "<br>"
+    );
+
+    return safeText;
+}
+
+
+// ============================================================
+// ESCAPE HTML
+// ============================================================
+
+function escapeHtml(text) {
+
+    const div = document.createElement("div");
 
     div.textContent = text;
-
 
     return div.innerHTML;
 }
 
 
-/* ==================================================
-   ENTER KEY
-================================================== */
+// ============================================================
+// REMOVE MESSAGE
+// ============================================================
 
-function handleKey(event) {
+function removeMessage(messageId) {
 
-    if (
-        event.key === "Enter" &&
-        !event.shiftKey
-    ) {
+    const message = document.getElementById(messageId);
 
-        event.preventDefault();
-
-        sendMessage();
-
+    if (message) {
+        message.remove();
     }
 }
 
 
-/* ==================================================
-   TEXTAREA AUTO RESIZE
-================================================== */
-
-document.addEventListener(
-    "input",
-    function(event) {
-
-        if (
-            event.target.id === "message"
-        ) {
-
-            autoResize(event.target);
-
-        }
-
-    }
-);
-
-
-function autoResize(element) {
-
-    element.style.height = "auto";
-
-    element.style.height =
-        Math.min(
-            element.scrollHeight,
-            150
-        ) + "px";
-}
-
-
-/* ==================================================
-   SCROLL
-================================================== */
+// ============================================================
+// SCROLL
+// ============================================================
 
 function scrollToBottom() {
 
-    const chatBox =
-        document.getElementById("chat-box");
+    if (!chatContainer) {
+        return;
+    }
 
-
-    chatBox.scrollTop =
-        chatBox.scrollHeight;
+    chatContainer.scrollTop =
+        chatContainer.scrollHeight;
 }
 
 
-/* ==================================================
-   SUGGESTIONS
-================================================== */
+// ============================================================
+// ENTER KEY
+// ============================================================
+
+if (messageInput) {
+
+    messageInput.addEventListener(
+        "keydown",
+        function(event) {
+
+            if (
+                event.key === "Enter" &&
+                !event.shiftKey
+            ) {
+
+                event.preventDefault();
+
+                sendMessage();
+            }
+        }
+    );
+
+
+    // Auto resize textarea
+
+    messageInput.addEventListener(
+        "input",
+        function() {
+
+            this.style.height = "auto";
+
+            this.style.height =
+                Math.min(
+                    this.scrollHeight,
+                    200
+                ) + "px";
+        }
+    );
+}
+
+
+// ============================================================
+// SUGGESTION BUTTONS
+// ============================================================
 
 function useSuggestion(text) {
 
-    const input =
-        document.getElementById("message");
+    if (!messageInput) {
+        return;
+    }
 
+    messageInput.value = text;
 
-    input.value = text;
+    messageInput.focus();
 
-    autoResize(input);
-
-    input.focus();
-
-    sendMessage();
+    messageInput.dispatchEvent(
+        new Event("input")
+    );
 }
 
 
-/* ==================================================
-   NEW CHAT
-================================================== */
+// ============================================================
+// NEW CHAT
+// ============================================================
 
 async function newChat() {
 
     try {
 
-        await fetch(
+        const response = await fetch(
             `${API_URL}/new-chat`,
             {
                 method: "POST"
             }
         );
 
+        if (!response.ok) {
+            throw new Error("Failed to start new chat");
+        }
+
+        // Remove messages
+        const messages =
+            chatContainer.querySelectorAll(
+                ".message"
+            );
+
+        messages.forEach(
+            message => message.remove()
+        );
+
+        // Show welcome screen
+        if (welcomeScreen) {
+            welcomeScreen.style.display = "";
+        }
+
+        // Clear input
+        if (messageInput) {
+            messageInput.value = "";
+        }
+
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "New chat error:",
+            error
+        );
 
+        alert(
+            "Could not start a new chat."
+        );
     }
-
-
-    const chatBox =
-        document.getElementById("chat-box");
-
-
-    chatBox.innerHTML = `
-
-        <div class="welcome">
-
-            <div class="asta-logo">
-                A
-            </div>
-
-            <h1>
-                How can I help you?
-            </h1>
-
-            <p>
-                I'm Asta, your personal AI assistant.
-            </p>
-
-            <div class="suggestions">
-
-                <button onclick="useSuggestion('Explain Python from basics')">
-                    🐍 Explain Python from basics
-                </button>
-
-                <button onclick="useSuggestion('Help me learn DSA')">
-                    💻 Help me learn DSA
-                </button>
-
-                <button onclick="useSuggestion('Give me a data science project idea')">
-                    📊 Data science project
-                </button>
-
-                <button onclick="useSuggestion('What can you help me with?')">
-                    ✨ What can you do?
-                </button>
-
-            </div>
-
-        </div>
-    `;
 }
 
 
-/* ==================================================
-   SHOW MEMORY
-================================================== */
+// ============================================================
+// SHOW LONG-TERM MEMORY
+// ============================================================
 
 async function showMemory() {
 
     const modal =
-        document.getElementById("memory-modal");
+        document.getElementById("memoryModal");
 
+    const memoryList =
+        document.getElementById("memoryList");
 
-    const list =
-        document.getElementById("memory-list");
+    if (!modal || !memoryList) {
+        return;
+    }
 
+    modal.style.display = "flex";
 
-    modal.classList.remove("hidden");
-
-
-    list.innerHTML = "Loading...";
-
+    memoryList.innerHTML =
+        "<p>Loading memories...</p>";
 
     try {
 
-        const response =
-            await fetch(
-                `${API_URL}/long-term-memory`
-            );
+        const response = await fetch(
+            `${API_URL}/long-term-memory`
+        );
 
+        if (!response.ok) {
+            throw new Error(
+                "Failed to load memories"
+            );
+        }
 
         const data =
             await response.json();
 
+        const memories =
+            data.long_term_memory || [];
 
-        if (
-            !data.long_term_memory ||
-            data.long_term_memory.length === 0
-        ) {
+        if (memories.length === 0) {
 
-            list.innerHTML =
-                "<p>No long-term memories yet.</p>";
+            memoryList.innerHTML =
+                "<p>Asta has no saved memories yet.</p>";
 
             return;
         }
 
+        memoryList.innerHTML = "";
 
-        list.innerHTML =
-            data.long_term_memory
-                .map(item => `
-                    <div class="memory-item">
-                        🧠 ${escapeHTML(item.memory)}
+        memories.forEach(
+            memory => {
+
+                const item =
+                    document.createElement("div");
+
+                item.className =
+                    "memory-item";
+
+                item.innerHTML = `
+                    <div class="memory-text">
+                        ${escapeHtml(memory.memory)}
                     </div>
-                `)
-                .join("");
+                    <div class="memory-date">
+                        ${escapeHtml(
+                            memory.created_at || ""
+                        )}
+                    </div>
+                `;
 
+                memoryList.appendChild(item);
+            }
+        );
 
     } catch (error) {
 
-        list.innerHTML =
-            "❌ Could not load memory.";
+        console.error(
+            "Memory error:",
+            error
+        );
 
+        memoryList.innerHTML =
+            "<p>❌ Could not load memories.</p>";
     }
 }
 
 
-/* ==================================================
-   CLOSE MEMORY
-================================================== */
+// ============================================================
+// CLOSE MEMORY MODAL
+// ============================================================
 
 function closeMemory() {
 
-    document
-        .getElementById("memory-modal")
-        .classList.add("hidden");
+    const modal =
+        document.getElementById("memoryModal");
+
+    if (modal) {
+        modal.style.display = "none";
+    }
 }
 
 
-/* ==================================================
-   CLEAR MEMORY
-================================================== */
+// ============================================================
+// CLOSE MODAL WHEN CLICKING OUTSIDE
+// ============================================================
+
+window.addEventListener(
+    "click",
+    function(event) {
+
+        const modal =
+            document.getElementById("memoryModal");
+
+        if (
+            modal &&
+            event.target === modal
+        ) {
+            closeMemory();
+        }
+    }
+);
+
+
+// ============================================================
+// CLEAR LONG-TERM MEMORY
+// ============================================================
 
 async function clearMemory() {
 
     const confirmed =
         confirm(
-            "Clear all long-term memories?"
+            "Are you sure you want to clear Asta's long-term memory?"
         );
-
 
     if (!confirmed) {
         return;
     }
 
-
     try {
 
-        await fetch(
+        const response = await fetch(
             `${API_URL}/clear-memory`,
             {
                 method: "DELETE"
             }
         );
 
+        if (!response.ok) {
+            throw new Error(
+                "Failed to clear memory"
+            );
+        }
 
-        showMemory();
+        await showMemory();
 
+        alert(
+            "Asta's long-term memory has been cleared."
+        );
 
     } catch (error) {
+
+        console.error(
+            "Clear memory error:",
+            error
+        );
 
         alert(
             "Could not clear memory."
         );
-
     }
 }
 
 
-/* ==================================================
-   SYSTEM STATUS
-================================================== */
+// ============================================================
+// CHECK ASTA HEALTH
+// ============================================================
 
 async function checkHealth() {
 
+    const statusElement =
+        document.getElementById("systemStatus");
+
     try {
 
-        const response =
-            await fetch(
-                `${API_URL}/health`
-            );
-
+        const response = await fetch(
+            `${API_URL}/health`
+        );
 
         const data =
             await response.json();
 
+        if (data.gemini_configured) {
 
-        if (data.ollama) {
+            if (statusElement) {
+                statusElement.textContent =
+                    "🟢 Asta is online";
+            }
 
-            alert(
-                `Asta is online!\n\nModel: ${data.model}\nOllama: Connected`
-            );
-
-        } else {
-
-            alert(
-                `Asta API is running, but Ollama is not connected.`
-            );
-
+            return true;
         }
 
+        if (statusElement) {
+            statusElement.textContent =
+                "🟡 AI configuration incomplete";
+        }
+
+        return false;
+
+    } catch (error) {
+
+        console.error(
+            "Health check error:",
+            error
+        );
+
+        if (statusElement) {
+            statusElement.textContent =
+                "🔴 Asta is offline";
+        }
+
+        return false;
+    }
+}
+
+
+// ============================================================
+// SYSTEM STATUS BUTTON
+// ============================================================
+
+async function showSystemStatus() {
+
+    try {
+
+        const response = await fetch(
+            `${API_URL}/health`
+        );
+
+        const data =
+            await response.json();
+
+        let message = "";
+
+        if (data.api === "online") {
+            message += "API: 🟢 Online\n";
+        } else {
+            message += "API: 🔴 Offline\n";
+        }
+
+        if (data.gemini_configured) {
+            message += "Gemini: 🟢 Connected\n";
+        } else {
+            message += "Gemini: 🔴 Not configured\n";
+        }
+
+        message +=
+            `Model: ${data.model}`;
+
+        alert(message);
 
     } catch (error) {
 
         alert(
-            "Asta backend is not reachable."
+            "❌ Unable to connect to Asta."
         );
-
     }
 }
+
+
+// ============================================================
+// INITIAL HEALTH CHECK
+// ============================================================
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+
+        checkHealth();
+
+    }
+);
