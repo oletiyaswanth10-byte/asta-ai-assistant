@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>ChatGPT Asta</title>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+        <div>
+
+            <div class="brand">
+                <div class="brand-icon">A</div>
+
+                <div>
+                    <h2>Asta</h2>
+                    <span>Personal AI</span>
+                </div>
+            </div>
+
+
+            <button
+                class="new-chat"
+                onclick="newChat()"
+            >
+                <span>＋</span>
+                New Chat
+            </button>
+
+
+            <div class="sidebar-section">
+
+                <p class="section-title">
+                    Assistant
+                </p>
+
+                <button
+                    class="side-button"
+                    onclick="showMemory()"
+                >
+                    🧠 Memory
+                </button>
+
+                <button
+                    class="side-button"
+                    onclick="checkHealth()"
+                >
+                    ⚡ System Status
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="sidebar-bottom">
+
+            <div class="model-card">
+
+                <span class="status-dot"></span>
+
+                <div>
+
+                    <strong>Qwen 2.5 7B</strong>
+
+                    <small>
+                        Local • Private
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <!-- MAIN -->
+
+    <main class="main">
+
+        <header class="topbar">
+
+            <div>
+
+                <strong>Asta</strong>
+
+                <span class="online">
+                    ● Online
+                </span>
+
+            </div>
+
+            <span class="model-name">
+                Qwen 2.5 7B
+            </span>
+
+        </header>
+
+
+        <!-- CHAT -->
+
+        <div
+            id="chat-box"
+            class="chat-box"
+        >
+
+            <div class="welcome">
+
+                <div class="asta-logo">
+                    A
+                </div>
+
+                <h1>
+                    How can I help you?
+                </h1>
+
+                <p>
+                    I'm Asta, your personal AI assistant.
+                </p>
+
+
+                <div class="suggestions">
+
+                    <button onclick="useSuggestion('Explain Python from basics')">
+                        🐍 Explain Python from basics
+                    </button>
+
+                    <button onclick="useSuggestion('Help me learn DSA')">
+                        💻 Help me learn DSA
+                    </button>
+
+                    <button onclick="useSuggestion('Give me a data science project idea')">
+                        📊 Data science project
+                    </button>
+
+                    <button onclick="useSuggestion('What can you help me with?')">
+                        ✨ What can you do?
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- INPUT -->
+
+        <div class="input-wrapper">
+
+            <div class="input-area">
+
+                <textarea
+                    id="message"
+                    rows="1"
+                    placeholder="Message Asta..."
+                    onkeydown="handleKey(event)"
+                ></textarea>
+
+
+                <button
+                    id="send-button"
+                    onclick="sendMessage()"
+                    aria-label="Send"
+                >
+                    ➤
+                </button>
+
+            </div>
+
+            <p class="disclaimer">
+                Asta can make mistakes. Check important information.
+            </p>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<!-- MEMORY MODAL -->
+
+<div
+    id="memory-modal"
+    class="modal hidden"
+>
+
+    <div class="modal-content">
+
+        <div class="modal-header">
+
+            <h2>🧠 Asta Memory</h2>
+
+            <button onclick="closeMemory()">
+                ×
+            </button>
+
+        </div>
+
+        <div id="memory-list">
+            Loading...
+        </div>
+
+        <button
+            class="clear-memory"
+            onclick="clearMemory()"
+        >
+            Clear Long-Term Memory
+        </button>
+
+    </div>
+
+</div>
+
+
+<script src="script.js"></script>
+
+</body>
+
+</html>

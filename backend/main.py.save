@@ -1,0 +1,31 @@
+from fastapi import FastAPIfrom pydantic import BaseModelimport requestsapp = FastAPI()class ChatRequest(BaseModel):    message: str@app.get("/")def home():    return {"message": "My AI Assistant is running!"}@app.post("/chat")def chat(request: ChatRequest):    response = requests.post(        "http://localhost:11434/api/generate",        json={            "model": "qwen2.5:7b",            "prompt": request.message,            "stream": False        }    )    data = response.json()    return {        "response": data["response"]    }from pydantic import BaseModel
+import requests
+
+app = FastAPI()
+
+
+class ChatRequest(BaseModel):
+    message: str
+
+
+def home():
+    return {"message": "My AI Assistant is running!"}
+
+
+@app.post("/chat")
+def chat(request: ChatRequest):
+
+    response = requests.post(
+        "http://localhost:11434/api/generate",
+        json={
+            "model": "qwen2.5:7b",
+            "prompt": request.message,
+            "stream": False
+        }
+    )
+
+    data = response.json()
+
+    return {
+        "response": data["response"]
+    }uvicorn backend.main:app --reload
