@@ -12,12 +12,25 @@ import os
 # CONFIGURATION
 # ============================================================
 
-DATABASE = "backend/memory.db"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+DATABASE = os.path.join(
+    BASE_DIR,
+    "backend",
+    "memory.db"
+)
+
+FRONTEND_DIR = os.path.join(
+    BASE_DIR,
+    "frontend"
+)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
 GEMINI_MODEL = "gemini-2.5-flash"
 
 MAX_RECENT_MESSAGES = 12
+
 MAX_MEMORIES = 50
 
 
@@ -41,7 +54,7 @@ app.add_middleware(
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*"]
 )
 
 
@@ -102,75 +115,97 @@ The user is interacting with their personal assistant named Asta.
 # ============================================================
 
 class ChatRequest(BaseModel):
+
     message: str
 
 
 class MemoryRequest(BaseModel):
+
     memory: str
 
 
 # ============================================================
-# DATABASE
+# DATABASE CONNECTION
 # ============================================================
 
 def get_connection():
+
     return sqlite3.connect(DATABASE)
 
+
+# ============================================================
+# INITIALIZE DATABASE
+# ============================================================
 
 def init_database():
 
     connection = get_connection()
+
     cursor = connection.cursor()
 
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS conversations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             role TEXT NOT NULL,
             message TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """)
+        """
+    )
 
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS memories (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             memory TEXT NOT NULL UNIQUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """)
+        """
+    )
 
     connection.commit()
+
     connection.close()
 
 
 # ============================================================
-# SAVE CONVERSATION
+# SAVE MESSAGE
 # ============================================================
 
 def save_message(role, message):
 
     connection = get_connection()
+
     cursor = connection.cursor()
 
     cursor.execute(
         """
-        INSERT INTO conversations (role, message)
+        INSERT INTO conversations
+        (role, message)
         VALUES (?, ?)
         """,
-        (role, message)
+        (
+            role,
+            message
+        )
     )
 
     connection.commit()
+
     connection.close()
 
 
 # ============================================================
-# GET RECENT CONVERSATION
+# GET RECENT MESSAGES
 # ============================================================
 
-def get_recent_messages(limit=MAX_RECENT_MESSAGES):
+def get_recent_messages(
+    limit=MAX_RECENT_MESSAGES
+):
 
     connection = get_connection()
+
     cursor = connection.cursor()
 
     cursor.execute(
@@ -180,18 +215,22 @@ def get_recent_messages(limit=MAX_RECENT_MESSAGES):
         ORDER BY id DESC
         LIMIT ?
         """,
-        (limit,)
+        (
+            limit,
+        )
     )
 
     rows = cursor.fetchall()
 
     connection.close()
 
-    return list(reversed(rows))
+    return list(
+        reversed(rows)
+    )
 
 
 # ============================================================
-# LONG-TERM MEMORY
+# SAVE LONG-TERM MEMORY
 # ============================================================
 
 def save_memory(memory):
@@ -199,26 +238,37 @@ def save_memory(memory):
     memory = memory.strip()
 
     if not memory:
+
         return
 
     connection = get_connection()
+
     cursor = connection.cursor()
 
     cursor.execute(
         """
-        INSERT OR IGNORE INTO memories (memory)
+        INSERT OR IGNORE INTO memories
+        (memory)
         VALUES (?)
         """,
-        (memory,)
+        (
+            memory,
+        )
     )
 
     connection.commit()
+
     connection.close()
 
+
+# ============================================================
+# GET LONG-TERM MEMORIES
+# ============================================================
 
 def get_memories():
 
     connection = get_connection()
+
     cursor = connection.cursor()
 
     cursor.execute(
@@ -228,7 +278,9 @@ def get_memories():
         ORDER BY id DESC
         LIMIT ?
         """,
-        (MAX_MEMORIES,)
+        (
+            MAX_MEMORIES,
+        )
     )
 
     rows = cursor.fetchall()
@@ -245,34 +297,53 @@ def get_memories():
 def call_gemini(prompt):
 
     if not GEMINI_API_KEY:
-        raise Exception("GEMINI_API_KEY is not configured")
+
+        raise Exception(
+            "GEMINI_API_KEY is not configured"
+        )
 
     url = (
-        f"https://generativelanguage.googleapis.com/"
+        "https://generativelanguage.googleapis.com/"
         f"v1beta/models/{GEMINI_MODEL}:generateContent"
     )
 
     headers = {
+
         "x-goog-api-key": GEMINI_API_KEY,
+
         "Content-Type": "application/json"
     }
 
     payload = {
+
         "contents": [
+
             {
+
                 "parts": [
+
                     {
+
                         "text": prompt
+
                     }
+
                 ]
+
             }
+
         ]
+
     }
 
     response = requests.post(
+
         url,
+
         headers=headers,
+
         json=payload,
+
         timeout=180
     )
 
@@ -288,11 +359,19 @@ def call_gemini(prompt):
             .strip()
         )
 
-    except (KeyError, IndexError):
+    except (
+        KeyError,
+        IndexError
+    ):
 
-        print("Gemini response:", data)
+        print(
+            "Gemini response:",
+            data
+        )
 
-        return "I couldn't generate a response."
+        return (
+            "I couldn't generate a response."
+        )
 
 
 # ============================================================
@@ -302,6 +381,7 @@ def call_gemini(prompt):
 def extract_memory(user_message):
 
     if not GEMINI_API_KEY:
+
         return
 
     prompt = f"""
@@ -359,30 +439,51 @@ USER MESSAGE:
     try:
 
         url = (
-            f"https://generativelanguage.googleapis.com/"
+            "https://generativelanguage.googleapis.com/"
             f"v1beta/models/{GEMINI_MODEL}:generateContent"
         )
 
         response = requests.post(
+
             url,
+
             headers={
-                "x-goog-api-key": GEMINI_API_KEY,
-                "Content-Type": "application/json"
+
+                "x-goog-api-key":
+                    GEMINI_API_KEY,
+
+                "Content-Type":
+                    "application/json"
             },
+
             json={
+
                 "contents": [
+
                     {
+
                         "parts": [
+
                             {
+
                                 "text": prompt
+
                             }
+
                         ]
+
                     }
+
                 ],
+
                 "generationConfig": {
-                    "responseMimeType": "application/json"
+
+                    "responseMimeType":
+                        "application/json"
                 }
+
             },
+
             timeout=120
         )
 
@@ -395,18 +496,32 @@ USER MESSAGE:
             ["content"]["parts"][0]["text"]
         )
 
-        result = json.loads(raw_result)
+        result = json.loads(
+            raw_result
+        )
 
         if result.get("remember") is True:
 
-            memory = result.get("memory", "").strip()
+            memory = (
+                result.get(
+                    "memory",
+                    ""
+                )
+                .strip()
+            )
 
             if memory:
-                save_memory(memory)
+
+                save_memory(
+                    memory
+                )
 
     except Exception as error:
 
-        print("Memory extraction skipped:", error)
+        print(
+            "Memory extraction skipped:",
+            error
+        )
 
 
 # ============================================================
@@ -417,25 +532,49 @@ def build_prompt():
 
     memories = get_memories()
 
-    recent_messages = get_recent_messages()
+    recent_messages = (
+        get_recent_messages()
+    )
 
-    prompt = ASTA_SYSTEM_PROMPT + "\n\n"
+    prompt = (
+        ASTA_SYSTEM_PROMPT
+        + "\n\n"
+    )
+
+    # --------------------------------------------------------
+    # LONG-TERM MEMORY
+    # --------------------------------------------------------
 
     if memories:
 
-        prompt += "IMPORTANT USER INFORMATION:\n"
+        prompt += (
+            "IMPORTANT USER INFORMATION:\n"
+        )
 
-        for _, memory, _ in reversed(memories):
+        for _, memory, _ in reversed(
+            memories
+        ):
 
-            prompt += f"- {memory}\n"
+            prompt += (
+                f"- {memory}\n"
+            )
 
         prompt += "\n"
 
-    prompt += "RECENT CONVERSATION:\n"
+    # --------------------------------------------------------
+    # RECENT CONVERSATION
+    # --------------------------------------------------------
+
+    prompt += (
+        "RECENT CONVERSATION:\n"
+    )
 
     for role, message in recent_messages:
 
-        prompt += f"{role.upper()}: {message}\n"
+        prompt += (
+            f"{role.upper()}: "
+            f"{message}\n"
+        )
 
     prompt += "\nASTA:"
 
@@ -453,28 +592,69 @@ init_database()
 # FRONTEND
 # ============================================================
 
-@app.get("/", include_in_schema=False)
+@app.get(
+    "/",
+    include_in_schema=False
+)
 def home():
 
+    index_file = os.path.join(
+        FRONTEND_DIR,
+        "index.html"
+    )
+
+    if not os.path.exists(index_file):
+
+        return {
+            "status": "online",
+            "assistant": "Asta",
+            "model": GEMINI_MODEL,
+            "frontend": "not found"
+        }
+
     return FileResponse(
-        "frontend/index.html"
+        index_file
     )
 
 
-@app.get("/style.css", include_in_schema=False)
+# ============================================================
+# FRONTEND CSS
+# ============================================================
+
+@app.get(
+    "/style.css",
+    include_in_schema=False
+)
 def style():
 
+    css_file = os.path.join(
+        FRONTEND_DIR,
+        "style.css"
+    )
+
     return FileResponse(
-        "frontend/style.css",
+        css_file,
         media_type="text/css"
     )
 
 
-@app.get("/script.js", include_in_schema=False)
+# ============================================================
+# FRONTEND JAVASCRIPT
+# ============================================================
+
+@app.get(
+    "/script.js",
+    include_in_schema=False
+)
 def script():
 
+    js_file = os.path.join(
+        FRONTEND_DIR,
+        "script.js"
+    )
+
     return FileResponse(
-        "frontend/script.js",
+        js_file,
         media_type="application/javascript"
     )
 
@@ -487,9 +667,22 @@ def script():
 def health():
 
     return {
+
         "api": "online",
-        "gemini_configured": bool(GEMINI_API_KEY),
-        "model": GEMINI_MODEL
+
+        "gemini_configured":
+            bool(GEMINI_API_KEY),
+
+        "model":
+            GEMINI_MODEL,
+
+        "frontend":
+            os.path.exists(
+                os.path.join(
+                    FRONTEND_DIR,
+                    "index.html"
+                )
+            )
     }
 
 
@@ -498,36 +691,56 @@ def health():
 # ============================================================
 
 @app.post("/chat")
-def chat(request: ChatRequest):
+def chat(
+    request: ChatRequest
+):
 
-    message = request.message.strip()
+    message = (
+        request.message.strip()
+    )
 
     if not message:
 
         return {
-            "response": "Please enter a message."
+
+            "response":
+                "Please enter a message."
         }
 
-    # Save user message
+    # --------------------------------------------------------
+    # SAVE USER MESSAGE
+    # --------------------------------------------------------
 
     save_message(
         "user",
         message
     )
 
-    # Extract long-term memory
+    # --------------------------------------------------------
+    # EXTRACT MEMORY
+    # --------------------------------------------------------
 
-    extract_memory(message)
+    extract_memory(
+        message
+    )
 
     try:
 
-        # Build complete prompt
+        # ----------------------------------------------------
+        # BUILD PROMPT
+        # ----------------------------------------------------
 
         prompt = build_prompt()
 
-        # Ask Gemini
+        # ----------------------------------------------------
+        # CALL GEMINI
+        # ----------------------------------------------------
 
-        assistant_response = call_gemini(prompt)
+        assistant_response = (
+            call_gemini(
+                prompt
+            )
+        )
 
     except requests.exceptions.ConnectionError:
 
@@ -544,7 +757,10 @@ def chat(request: ChatRequest):
 
     except requests.exceptions.HTTPError as error:
 
-        print("Gemini HTTP error:", error)
+        print(
+            "Gemini HTTP error:",
+            error
+        )
 
         assistant_response = (
             "❌ Gemini API error. "
@@ -553,14 +769,19 @@ def chat(request: ChatRequest):
 
     except Exception as error:
 
-        print("Chat error:", error)
+        print(
+            "Chat error:",
+            error
+        )
 
         assistant_response = (
             "❌ Something went wrong while generating "
             "the response."
         )
 
-    # Save assistant response
+    # --------------------------------------------------------
+    # SAVE ASSISTANT RESPONSE
+    # --------------------------------------------------------
 
     save_message(
         "assistant",
@@ -568,7 +789,9 @@ def chat(request: ChatRequest):
     )
 
     return {
-        "response": assistant_response
+
+        "response":
+            assistant_response
     }
 
 
@@ -580,11 +803,16 @@ def chat(request: ChatRequest):
 def view_memory():
 
     connection = get_connection()
+
     cursor = connection.cursor()
 
     cursor.execute(
         """
-        SELECT id, role, message, created_at
+        SELECT
+            id,
+            role,
+            message,
+            created_at
         FROM conversations
         ORDER BY id
         """
@@ -595,7 +823,9 @@ def view_memory():
     connection.close()
 
     return {
-        "conversation_history": rows
+
+        "conversation_history":
+            rows
     }
 
 
@@ -603,18 +833,30 @@ def view_memory():
 # VIEW LONG-TERM MEMORY
 # ============================================================
 
-@app.get("/long-term-memory")
+@app.get(
+    "/long-term-memory"
+)
 def view_long_term_memory():
 
     rows = get_memories()
 
     return {
+
         "long_term_memory": [
+
             {
-                "id": row[0],
-                "memory": row[1],
-                "created_at": row[2]
+
+                "id":
+                    row[0],
+
+                "memory":
+                    row[1],
+
+                "created_at":
+                    row[2]
+
             }
+
             for row in rows
         ]
     }
@@ -625,26 +867,33 @@ def view_long_term_memory():
 # ============================================================
 
 @app.post("/remember")
-def remember(request: MemoryRequest):
+def remember(
+    request: MemoryRequest
+):
 
     save_memory(
         request.memory
     )
 
     return {
-        "message": "Memory saved.",
-        "memory": request.memory
+
+        "message":
+            "Memory saved.",
+
+        "memory":
+            request.memory
     }
 
 
 # ============================================================
-# CLEAR CONVERSATION
+# START NEW CHAT
 # ============================================================
 
 @app.post("/new-chat")
 def new_chat():
 
     connection = get_connection()
+
     cursor = connection.cursor()
 
     cursor.execute(
@@ -652,10 +901,13 @@ def new_chat():
     )
 
     connection.commit()
+
     connection.close()
 
     return {
-        "message": "New conversation started."
+
+        "message":
+            "New conversation started."
     }
 
 
@@ -663,10 +915,13 @@ def new_chat():
 # CLEAR LONG-TERM MEMORY
 # ============================================================
 
-@app.delete("/clear-memory")
+@app.delete(
+    "/clear-memory"
+)
 def clear_memory():
 
     connection = get_connection()
+
     cursor = connection.cursor()
 
     cursor.execute(
@@ -674,8 +929,11 @@ def clear_memory():
     )
 
     connection.commit()
+
     connection.close()
 
     return {
-        "message": "Long-term memory cleared."
+
+        "message":
+            "Long-term memory cleared."
     }
