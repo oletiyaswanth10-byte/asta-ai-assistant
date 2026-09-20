@@ -9,15 +9,18 @@ import os
 
 
 # ============================================================
-# CONFIGURATION
+# PATHS
 # ============================================================
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(
+    os.path.dirname(
+        os.path.abspath(__file__)
+    )
+)
 
-DATABASE = os.path.join(
+BACKEND_DIR = os.path.join(
     BASE_DIR,
-    "backend",
-    "memory.db"
+    "backend"
 )
 
 FRONTEND_DIR = os.path.join(
@@ -25,9 +28,26 @@ FRONTEND_DIR = os.path.join(
     "frontend"
 )
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+DATABASE = os.path.join(
+    BACKEND_DIR,
+    "memory.db"
+)
+
+
+# ============================================================
+# GEMINI CONFIGURATION
+# ============================================================
+
+GEMINI_API_KEY = os.getenv(
+    "GEMINI_API_KEY"
+)
 
 GEMINI_MODEL = "gemini-2.5-flash"
+
+
+# ============================================================
+# MEMORY CONFIGURATION
+# ============================================================
 
 MAX_RECENT_MESSAGES = 12
 
@@ -40,7 +60,7 @@ MAX_MEMORIES = 50
 
 app = FastAPI(
     title="Asta AI",
-    description="Asta - Personal AI Assistant",
+    description="Asta Personal AI Assistant",
     version="2.0"
 )
 
@@ -51,9 +71,13 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
+
     allow_origins=["*"],
+
     allow_credentials=True,
+
     allow_methods=["*"],
+
     allow_headers=["*"]
 )
 
@@ -125,17 +149,20 @@ class MemoryRequest(BaseModel):
 
 
 # ============================================================
-# DATABASE CONNECTION
+# DATABASE
 # ============================================================
 
 def get_connection():
 
-    return sqlite3.connect(DATABASE)
+    os.makedirs(
+        BACKEND_DIR,
+        exist_ok=True
+    )
 
+    return sqlite3.connect(
+        DATABASE
+    )
 
-# ============================================================
-# INITIALIZE DATABASE
-# ============================================================
 
 def init_database():
 
@@ -149,7 +176,8 @@ def init_database():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             role TEXT NOT NULL,
             message TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP
+                DEFAULT CURRENT_TIMESTAMP
         )
         """
     )
@@ -159,7 +187,8 @@ def init_database():
         CREATE TABLE IF NOT EXISTS memories (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             memory TEXT NOT NULL UNIQUE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP
+                DEFAULT CURRENT_TIMESTAMP
         )
         """
     )
@@ -170,10 +199,13 @@ def init_database():
 
 
 # ============================================================
-# SAVE MESSAGE
+# CONVERSATION FUNCTIONS
 # ============================================================
 
-def save_message(role, message):
+def save_message(
+    role,
+    message
+):
 
     connection = get_connection()
 
@@ -195,10 +227,6 @@ def save_message(role, message):
 
     connection.close()
 
-
-# ============================================================
-# GET RECENT MESSAGES
-# ============================================================
 
 def get_recent_messages(
     limit=MAX_RECENT_MESSAGES
@@ -230,10 +258,12 @@ def get_recent_messages(
 
 
 # ============================================================
-# SAVE LONG-TERM MEMORY
+# MEMORY FUNCTIONS
 # ============================================================
 
-def save_memory(memory):
+def save_memory(
+    memory
+):
 
     memory = memory.strip()
 
@@ -261,10 +291,6 @@ def save_memory(memory):
     connection.close()
 
 
-# ============================================================
-# GET LONG-TERM MEMORIES
-# ============================================================
-
 def get_memories():
 
     connection = get_connection()
@@ -291,10 +317,12 @@ def get_memories():
 
 
 # ============================================================
-# GEMINI API
+# GEMINI
 # ============================================================
 
-def call_gemini(prompt):
+def call_gemini(
+    prompt
+):
 
     if not GEMINI_API_KEY:
 
@@ -304,14 +332,17 @@ def call_gemini(prompt):
 
     url = (
         "https://generativelanguage.googleapis.com/"
-        f"v1beta/models/{GEMINI_MODEL}:generateContent"
+        "v1beta/models/"
+        f"{GEMINI_MODEL}:generateContent"
     )
 
     headers = {
 
-        "x-goog-api-key": GEMINI_API_KEY,
+        "x-goog-api-key":
+            GEMINI_API_KEY,
 
-        "Content-Type": "application/json"
+        "Content-Type":
+            "application/json"
     }
 
     payload = {
@@ -324,8 +355,8 @@ def call_gemini(prompt):
 
                     {
 
-                        "text": prompt
-
+                        "text":
+                            prompt
                     }
 
                 ]
@@ -355,7 +386,8 @@ def call_gemini(prompt):
 
         return (
             data["candidates"][0]
-            ["content"]["parts"][0]["text"]
+            ["content"]["parts"][0]
+            ["text"]
             .strip()
         )
 
@@ -365,7 +397,7 @@ def call_gemini(prompt):
     ):
 
         print(
-            "Gemini response:",
+            "Unexpected Gemini response:",
             data
         )
 
@@ -378,7 +410,9 @@ def call_gemini(prompt):
 # AUTOMATIC MEMORY EXTRACTION
 # ============================================================
 
-def extract_memory(user_message):
+def extract_memory(
+    user_message
+):
 
     if not GEMINI_API_KEY:
 
@@ -387,7 +421,7 @@ def extract_memory(user_message):
     prompt = f"""
 You are a long-term memory extraction system.
 
-Analyze this user message.
+Analyze the following user message.
 
 Save only useful, non-sensitive facts that may help a personal
 AI assistant understand the user in future conversations.
@@ -440,7 +474,8 @@ USER MESSAGE:
 
         url = (
             "https://generativelanguage.googleapis.com/"
-            f"v1beta/models/{GEMINI_MODEL}:generateContent"
+            "v1beta/models/"
+            f"{GEMINI_MODEL}:generateContent"
         )
 
         response = requests.post(
@@ -466,8 +501,8 @@ USER MESSAGE:
 
                             {
 
-                                "text": prompt
-
+                                "text":
+                                    prompt
                             }
 
                         ]
@@ -493,14 +528,17 @@ USER MESSAGE:
 
         raw_result = (
             data["candidates"][0]
-            ["content"]["parts"][0]["text"]
+            ["content"]["parts"][0]
+            ["text"]
         )
 
         result = json.loads(
             raw_result
         )
 
-        if result.get("remember") is True:
+        if result.get(
+            "remember"
+        ) is True:
 
             memory = (
                 result.get(
@@ -525,7 +563,7 @@ USER MESSAGE:
 
 
 # ============================================================
-# BUILD ASTA PROMPT
+# BUILD PROMPT
 # ============================================================
 
 def build_prompt():
@@ -541,10 +579,6 @@ def build_prompt():
         + "\n\n"
     )
 
-    # --------------------------------------------------------
-    # LONG-TERM MEMORY
-    # --------------------------------------------------------
-
     if memories:
 
         prompt += (
@@ -556,14 +590,12 @@ def build_prompt():
         ):
 
             prompt += (
-                f"- {memory}\n"
+                "- "
+                + memory
+                + "\n"
             )
 
         prompt += "\n"
-
-    # --------------------------------------------------------
-    # RECENT CONVERSATION
-    # --------------------------------------------------------
 
     prompt += (
         "RECENT CONVERSATION:\n"
@@ -572,17 +604,21 @@ def build_prompt():
     for role, message in recent_messages:
 
         prompt += (
-            f"{role.upper()}: "
-            f"{message}\n"
+            role.upper()
+            + ": "
+            + message
+            + "\n"
         )
 
-    prompt += "\nASTA:"
+    prompt += (
+        "\nASTA:"
+    )
 
     return prompt
 
 
 # ============================================================
-# INITIALIZE DATABASE
+# DATABASE INITIALIZATION
 # ============================================================
 
 init_database()
@@ -603,22 +639,43 @@ def home():
         "index.html"
     )
 
-    if not os.path.exists(index_file):
+    print(
+        "Frontend path:",
+        index_file
+    )
+
+    print(
+        "Frontend exists:",
+        os.path.exists(index_file)
+    )
+
+    if not os.path.exists(
+        index_file
+    ):
 
         return {
             "status": "online",
+
             "assistant": "Asta",
-            "model": GEMINI_MODEL,
-            "frontend": "not found"
+
+            "model":
+                GEMINI_MODEL,
+
+            "error":
+                "frontend/index.html not found",
+
+            "frontend_path":
+                index_file
         }
 
     return FileResponse(
-        index_file
+        index_file,
+        media_type="text/html"
     )
 
 
 # ============================================================
-# FRONTEND CSS
+# CSS
 # ============================================================
 
 @app.get(
@@ -632,6 +689,15 @@ def style():
         "style.css"
     )
 
+    if not os.path.exists(
+        css_file
+    ):
+
+        return {
+            "error":
+                "frontend/style.css not found"
+        }
+
     return FileResponse(
         css_file,
         media_type="text/css"
@@ -639,7 +705,7 @@ def style():
 
 
 # ============================================================
-# FRONTEND JAVASCRIPT
+# JAVASCRIPT
 # ============================================================
 
 @app.get(
@@ -653,6 +719,15 @@ def script():
         "script.js"
     )
 
+    if not os.path.exists(
+        js_file
+    ):
+
+        return {
+            "error":
+                "frontend/script.js not found"
+        }
+
     return FileResponse(
         js_file,
         media_type="application/javascript"
@@ -660,18 +735,26 @@ def script():
 
 
 # ============================================================
-# HEALTH CHECK
+# HEALTH
 # ============================================================
 
-@app.get("/health")
+@app.get(
+    "/health"
+)
 def health():
 
     return {
 
-        "api": "online",
+        "api":
+            "online",
+
+        "assistant":
+            "Asta",
 
         "gemini_configured":
-            bool(GEMINI_API_KEY),
+            bool(
+                GEMINI_API_KEY
+            ),
 
         "model":
             GEMINI_MODEL,
@@ -682,7 +765,10 @@ def health():
                     FRONTEND_DIR,
                     "index.html"
                 )
-            )
+            ),
+
+        "frontend_path":
+            FRONTEND_DIR
     }
 
 
@@ -690,13 +776,16 @@ def health():
 # CHAT
 # ============================================================
 
-@app.post("/chat")
+@app.post(
+    "/chat"
+)
 def chat(
     request: ChatRequest
 ):
 
     message = (
-        request.message.strip()
+        request.message
+        .strip()
     )
 
     if not message:
@@ -707,18 +796,10 @@ def chat(
                 "Please enter a message."
         }
 
-    # --------------------------------------------------------
-    # SAVE USER MESSAGE
-    # --------------------------------------------------------
-
     save_message(
         "user",
         message
     )
-
-    # --------------------------------------------------------
-    # EXTRACT MEMORY
-    # --------------------------------------------------------
 
     extract_memory(
         message
@@ -726,15 +807,9 @@ def chat(
 
     try:
 
-        # ----------------------------------------------------
-        # BUILD PROMPT
-        # ----------------------------------------------------
-
-        prompt = build_prompt()
-
-        # ----------------------------------------------------
-        # CALL GEMINI
-        # ----------------------------------------------------
+        prompt = (
+            build_prompt()
+        )
 
         assistant_response = (
             call_gemini(
@@ -745,14 +820,13 @@ def chat(
     except requests.exceptions.ConnectionError:
 
         assistant_response = (
-            "❌ I cannot connect to the Gemini API."
+            "❌ I cannot connect to Gemini."
         )
 
     except requests.exceptions.Timeout:
 
         assistant_response = (
-            "⏳ Gemini took too long to respond. "
-            "Please try again."
+            "⏳ Gemini took too long to respond."
         )
 
     except requests.exceptions.HTTPError as error:
@@ -764,7 +838,7 @@ def chat(
 
         assistant_response = (
             "❌ Gemini API error. "
-            "Please check your API key and API limits."
+            "Please check the API key and API limits."
         )
 
     except Exception as error:
@@ -775,13 +849,8 @@ def chat(
         )
 
         assistant_response = (
-            "❌ Something went wrong while generating "
-            "the response."
+            "❌ Something went wrong."
         )
-
-    # --------------------------------------------------------
-    # SAVE ASSISTANT RESPONSE
-    # --------------------------------------------------------
 
     save_message(
         "assistant",
@@ -796,10 +865,12 @@ def chat(
 
 
 # ============================================================
-# VIEW CONVERSATION HISTORY
+# CONVERSATION HISTORY
 # ============================================================
 
-@app.get("/memory")
+@app.get(
+    "/memory"
+)
 def view_memory():
 
     connection = get_connection()
@@ -830,7 +901,7 @@ def view_memory():
 
 
 # ============================================================
-# VIEW LONG-TERM MEMORY
+# LONG-TERM MEMORY
 # ============================================================
 
 @app.get(
@@ -863,10 +934,12 @@ def view_long_term_memory():
 
 
 # ============================================================
-# MANUALLY SAVE MEMORY
+# MANUAL MEMORY
 # ============================================================
 
-@app.post("/remember")
+@app.post(
+    "/remember"
+)
 def remember(
     request: MemoryRequest
 ):
@@ -886,10 +959,12 @@ def remember(
 
 
 # ============================================================
-# START NEW CHAT
+# NEW CHAT
 # ============================================================
 
-@app.post("/new-chat")
+@app.post(
+    "/new-chat"
+)
 def new_chat():
 
     connection = get_connection()
