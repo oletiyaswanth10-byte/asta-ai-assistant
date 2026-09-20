@@ -6,8 +6,7 @@ const API_URL = "https://asta-ai-assistant.onrender.com";
 
 
 // ============================================================
-// FIND ELEMENTS
-// Supports multiple possible IDs used by the Asta interface
+// FIND MESSAGE INPUT
 // ============================================================
 
 function getMessageInput() {
@@ -22,6 +21,10 @@ function getMessageInput() {
 }
 
 
+// ============================================================
+// FIND CHAT CONTAINER
+// ============================================================
+
 function getChatContainer() {
 
     return (
@@ -33,6 +36,10 @@ function getChatContainer() {
     );
 }
 
+
+// ============================================================
+// FIND WELCOME SCREEN
+// ============================================================
 
 function getWelcomeScreen() {
 
@@ -69,7 +76,6 @@ function formatMessage(text) {
 
     let safeText = escapeHtml(text);
 
-    // Code blocks
     safeText = safeText.replace(
         /```([\s\S]*?)```/g,
         function(match, code) {
@@ -80,25 +86,21 @@ function formatMessage(text) {
         }
     );
 
-    // Inline code
     safeText = safeText.replace(
         /`([^`]+)`/g,
         "<code>$1</code>"
     );
 
-    // Bold
     safeText = safeText.replace(
         /\*\*(.*?)\*\*/g,
         "<strong>$1</strong>"
     );
 
-    // Italic
     safeText = safeText.replace(
         /\*(.*?)\*/g,
         "<em>$1</em>"
     );
 
-    // New lines
     safeText = safeText.replace(
         /\n/g,
         "<br>"
@@ -118,7 +120,8 @@ function addMessage(
     temporary = false
 ) {
 
-    const chatContainer = getChatContainer();
+    const chatContainer =
+        getChatContainer();
 
     if (!chatContainer) {
 
@@ -231,7 +234,7 @@ function removeMessage(
 
 
 // ============================================================
-// SCROLL TO BOTTOM
+// SCROLL
 // ============================================================
 
 function scrollToBottom() {
@@ -269,32 +272,34 @@ async function sendMessage() {
     const message =
         messageInput.value.trim();
 
+    // Don't send empty messages
     if (!message) {
         return;
     }
 
-    const welcomeScreen =
-        getWelcomeScreen();
-
-    // Hide welcome screen
-    if (welcomeScreen) {
-        welcomeScreen.style.display =
-            "none";
-    }
-
-    // Show user message
+    // IMPORTANT:
+    // Add the user's message BEFORE clearing input.
     addMessage(
         "user",
         message
     );
 
-    // Clear input
+    // Hide welcome screen
+    const welcomeScreen =
+        getWelcomeScreen();
+
+    if (welcomeScreen) {
+        welcomeScreen.style.display =
+            "none";
+    }
+
+    // Clear input AFTER saving the message
     messageInput.value = "";
 
     messageInput.style.height =
         "auto";
 
-    // Thinking message
+    // Show thinking message
     const thinkingId =
         addMessage(
             "assistant",
@@ -331,10 +336,12 @@ async function sendMessage() {
         const data =
             await response.json();
 
+        // Remove thinking message
         removeMessage(
             thinkingId
         );
 
+        // Show Asta response
         addMessage(
             "assistant",
             data.response ||
@@ -365,7 +372,12 @@ async function sendMessage() {
 // ============================================================
 // HANDLE ENTER KEY
 // ============================================================
-// Your HTML currently calls handleKey(event)
+// This function is used by your HTML:
+// onkeydown="handleKey(event)"
+//
+// IMPORTANT:
+// There is NO second keydown event listener.
+// This prevents duplicate messages.
 // ============================================================
 
 function handleKey(event) {
@@ -490,7 +502,7 @@ async function newChat() {
 
 
 // ============================================================
-// SHOW MEMORY
+// SHOW LONG-TERM MEMORY
 // ============================================================
 
 async function showMemory() {
@@ -822,6 +834,8 @@ document.addEventListener(
 
         if (messageInput) {
 
+            // Auto-resize only.
+            // DO NOT add another keydown listener here.
             messageInput.addEventListener(
                 "input",
                 function() {
@@ -836,24 +850,6 @@ document.addEventListener(
                         ) + "px";
                 }
             );
-
-            // Also support Enter without relying
-            // only on HTML onkeydown
-            messageInput.addEventListener(
-                "keydown",
-                function(event) {
-
-                    if (
-                        event.key === "Enter" &&
-                        !event.shiftKey
-                    ) {
-
-                        event.preventDefault();
-
-                        sendMessage();
-                    }
-                }
-            );
         }
 
         checkHealth();
@@ -861,6 +857,5 @@ document.addEventListener(
         console.log(
             "Asta frontend loaded successfully."
         );
-
     }
 );
