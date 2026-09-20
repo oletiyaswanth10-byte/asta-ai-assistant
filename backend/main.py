@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import requests
 import sqlite3
@@ -420,8 +421,6 @@ def build_prompt():
 
     prompt = ASTA_SYSTEM_PROMPT + "\n\n"
 
-    # Long-term memory
-
     if memories:
 
         prompt += "IMPORTANT USER INFORMATION:\n"
@@ -431,8 +430,6 @@ def build_prompt():
             prompt += f"- {memory}\n"
 
         prompt += "\n"
-
-    # Recent conversation
 
     prompt += "RECENT CONVERSATION:\n"
 
@@ -453,17 +450,33 @@ init_database()
 
 
 # ============================================================
-# HOME
+# FRONTEND
 # ============================================================
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 def home():
 
-    return {
-        "status": "online",
-        "assistant": "Asta",
-        "model": GEMINI_MODEL
-    }
+    return FileResponse(
+        "frontend/index.html"
+    )
+
+
+@app.get("/style.css", include_in_schema=False)
+def style():
+
+    return FileResponse(
+        "frontend/style.css",
+        media_type="text/css"
+    )
+
+
+@app.get("/script.js", include_in_schema=False)
+def script():
+
+    return FileResponse(
+        "frontend/script.js",
+        media_type="application/javascript"
+    )
 
 
 # ============================================================
