@@ -2,52 +2,22 @@
 // ASTA AI - FRONTEND
 // ============================================================
 
-const API_URL = "https://asta-ai-assistant.onrender.com";
+const API_URL =
+    "https://asta-ai-assistant.onrender.com";
 
 
 // ============================================================
-// FIND MESSAGE INPUT
+// DOM ELEMENTS
 // ============================================================
 
-function getMessageInput() {
+const messageInput =
+    document.getElementById("message");
 
-    return (
-        document.getElementById("messageInput") ||
-        document.getElementById("chatInput") ||
-        document.getElementById("userInput") ||
-        document.getElementById("prompt") ||
-        document.querySelector("textarea")
-    );
-}
+const chatContainer =
+    document.getElementById("chat-box");
 
-
-// ============================================================
-// FIND CHAT CONTAINER
-// ============================================================
-
-function getChatContainer() {
-
-    return (
-        document.getElementById("chatContainer") ||
-        document.getElementById("messages") ||
-        document.getElementById("chatMessages") ||
-        document.querySelector(".chat-messages") ||
-        document.querySelector(".messages")
-    );
-}
-
-
-// ============================================================
-// FIND WELCOME SCREEN
-// ============================================================
-
-function getWelcomeScreen() {
-
-    return (
-        document.getElementById("welcomeScreen") ||
-        document.querySelector(".welcome-screen")
-    );
-}
+const welcomeScreen =
+    document.getElementById("welcomeScreen");
 
 
 // ============================================================
@@ -56,16 +26,18 @@ function getWelcomeScreen() {
 
 function escapeHtml(text) {
 
-    const div = document.createElement("div");
+    const div =
+        document.createElement("div");
 
-    div.textContent = text;
+    div.textContent =
+        text;
 
     return div.innerHTML;
 }
 
 
 // ============================================================
-// FORMAT MESSAGE
+// FORMAT ASTA MESSAGE
 // ============================================================
 
 function formatMessage(text) {
@@ -74,37 +46,60 @@ function formatMessage(text) {
         return "";
     }
 
-    let safeText = escapeHtml(text);
+    let safeText =
+        escapeHtml(text);
 
-    safeText = safeText.replace(
-        /```([\s\S]*?)```/g,
-        function(match, code) {
 
-            return `
-                <pre class="code-block"><code>${code.trim()}</code></pre>
-            `;
-        }
-    );
+    // Code blocks
 
-    safeText = safeText.replace(
-        /`([^`]+)`/g,
-        "<code>$1</code>"
-    );
+    safeText =
+        safeText.replace(
+            /```([\s\S]*?)```/g,
+            function(match, code) {
 
-    safeText = safeText.replace(
-        /\*\*(.*?)\*\*/g,
-        "<strong>$1</strong>"
-    );
+                return `
+                    <pre class="code-block"><code>${code.trim()}</code></pre>
+                `;
 
-    safeText = safeText.replace(
-        /\*(.*?)\*/g,
-        "<em>$1</em>"
-    );
+            }
+        );
 
-    safeText = safeText.replace(
-        /\n/g,
-        "<br>"
-    );
+
+    // Inline code
+
+    safeText =
+        safeText.replace(
+            /`([^`]+)`/g,
+            "<code>$1</code>"
+        );
+
+
+    // Bold
+
+    safeText =
+        safeText.replace(
+            /\*\*(.*?)\*\*/g,
+            "<strong>$1</strong>"
+        );
+
+
+    // Italic
+
+    safeText =
+        safeText.replace(
+            /\*(.*?)\*/g,
+            "<em>$1</em>"
+        );
+
+
+    // New lines
+
+    safeText =
+        safeText.replace(
+            /\n/g,
+            "<br>"
+        );
+
 
     return safeText;
 }
@@ -116,12 +111,8 @@ function formatMessage(text) {
 
 function addMessage(
     role,
-    text,
-    temporary = false
+    text
 ) {
-
-    const chatContainer =
-        getChatContainer();
 
     if (!chatContainer) {
 
@@ -132,6 +123,7 @@ function addMessage(
         return null;
     }
 
+
     const messageId =
         "message-" +
         Date.now() +
@@ -140,71 +132,104 @@ function addMessage(
             .toString(36)
             .substring(2, 8);
 
+
     const messageDiv =
         document.createElement("div");
+
 
     messageDiv.className =
         `message ${role}-message`;
 
+
     messageDiv.id =
         messageId;
+
+
+    // Avatar
 
     const avatar =
         document.createElement("div");
 
+
     avatar.className =
         "message-avatar";
+
 
     avatar.textContent =
         role === "user"
             ? "You"
             : "A";
 
+
+    // Content
+
     const content =
         document.createElement("div");
+
 
     content.className =
         "message-content";
 
+
+    // Name
+
     const name =
         document.createElement("div");
 
+
     name.className =
         "message-name";
+
 
     name.textContent =
         role === "user"
             ? "You"
             : "Asta";
 
+
+    // Text
+
     const textElement =
         document.createElement("div");
+
 
     textElement.className =
         "message-text";
 
+
     textElement.innerHTML =
         formatMessage(text);
 
-    content.appendChild(name);
+
+    // Build message
+
+    content.appendChild(
+        name
+    );
+
 
     content.appendChild(
         textElement
     );
 
+
     messageDiv.appendChild(
         avatar
     );
+
 
     messageDiv.appendChild(
         content
     );
 
+
     chatContainer.appendChild(
         messageDiv
     );
 
+
     scrollToBottom();
+
 
     return messageId;
 }
@@ -222,13 +247,17 @@ function removeMessage(
         return;
     }
 
+
     const message =
         document.getElementById(
             messageId
         );
 
+
     if (message) {
+
         message.remove();
+
     }
 }
 
@@ -239,12 +268,10 @@ function removeMessage(
 
 function scrollToBottom() {
 
-    const chatContainer =
-        getChatContainer();
-
     if (!chatContainer) {
         return;
     }
+
 
     chatContainer.scrollTop =
         chatContainer.scrollHeight;
@@ -257,9 +284,6 @@ function scrollToBottom() {
 
 async function sendMessage() {
 
-    const messageInput =
-        getMessageInput();
-
     if (!messageInput) {
 
         console.error(
@@ -269,43 +293,59 @@ async function sendMessage() {
         return;
     }
 
+
     const message =
         messageInput.value.trim();
 
-    // Don't send empty messages
+
+    // Ignore empty message
+
     if (!message) {
         return;
     }
 
+
+    // ========================================================
     // IMPORTANT:
-    // Add the user's message BEFORE clearing input.
+    // Add user message FIRST.
+    // ========================================================
+
     addMessage(
         "user",
         message
     );
 
+
     // Hide welcome screen
-    const welcomeScreen =
-        getWelcomeScreen();
 
     if (welcomeScreen) {
+
         welcomeScreen.style.display =
             "none";
+
     }
 
-    // Clear input AFTER saving the message
-    messageInput.value = "";
+
+    // Clear input AFTER adding message
+
+    messageInput.value =
+        "";
+
 
     messageInput.style.height =
         "auto";
 
-    // Show thinking message
+
+    // ========================================================
+    // THINKING MESSAGE
+    // ========================================================
+
     const thinkingId =
         addMessage(
             "assistant",
-            "Asta is thinking...",
-            true
+            "Asta is thinking..."
         );
+
 
     try {
 
@@ -321,32 +361,41 @@ async function sendMessage() {
                     },
 
                     body: JSON.stringify({
-                        message: message
+                        message:
+                            message
                     })
                 }
             );
+
 
         if (!response.ok) {
 
             throw new Error(
                 `Server error: ${response.status}`
             );
+
         }
+
 
         const data =
             await response.json();
 
-        // Remove thinking message
+
+        // Remove thinking
+
         removeMessage(
             thinkingId
         );
 
+
         // Show Asta response
+
         addMessage(
             "assistant",
             data.response ||
                 "I couldn't generate a response."
         );
+
 
     } catch (error) {
 
@@ -355,29 +404,26 @@ async function sendMessage() {
             error
         );
 
+
         removeMessage(
             thinkingId
         );
+
 
         addMessage(
             "assistant",
             "❌ I couldn't connect to Asta. Please try again."
         );
+
     }
+
 
     scrollToBottom();
 }
 
 
 // ============================================================
-// HANDLE ENTER KEY
-// ============================================================
-// This function is used by your HTML:
-// onkeydown="handleKey(event)"
-//
-// IMPORTANT:
-// There is NO second keydown event listener.
-// This prevents duplicate messages.
+// ENTER KEY
 // ============================================================
 
 function handleKey(event) {
@@ -394,32 +440,30 @@ function handleKey(event) {
         return false;
     }
 
+
     return true;
 }
 
 
 // ============================================================
-// SUGGESTION BUTTONS
+// SUGGESTION
 // ============================================================
 
-function useSuggestion(text) {
-
-    const messageInput =
-        getMessageInput();
+function useSuggestion(
+    text
+) {
 
     if (!messageInput) {
-
-        console.error(
-            "Asta error: message input not found."
-        );
-
         return;
     }
+
 
     messageInput.value =
         text;
 
+
     messageInput.focus();
+
 
     messageInput.dispatchEvent(
         new Event("input")
@@ -443,15 +487,17 @@ async function newChat() {
                 }
             );
 
+
         if (!response.ok) {
 
             throw new Error(
                 "Failed to start new chat"
             );
+
         }
 
-        const chatContainer =
-            getChatContainer();
+
+        // Remove chat messages
 
         if (chatContainer) {
 
@@ -460,23 +506,26 @@ async function newChat() {
                     ".message"
                 );
 
+
             messages.forEach(
                 message =>
                     message.remove()
             );
+
         }
 
-        const welcomeScreen =
-            getWelcomeScreen();
+
+        // Show welcome screen
 
         if (welcomeScreen) {
 
             welcomeScreen.style.display =
                 "";
+
         }
 
-        const messageInput =
-            getMessageInput();
+
+        // Clear input
 
         if (messageInput) {
 
@@ -485,7 +534,9 @@ async function newChat() {
 
             messageInput.style.height =
                 "auto";
+
         }
+
 
     } catch (error) {
 
@@ -494,38 +545,55 @@ async function newChat() {
             error
         );
 
+
         alert(
             "Could not start a new chat."
         );
+
     }
 }
 
 
 // ============================================================
-// SHOW LONG-TERM MEMORY
+// SHOW MEMORY
 // ============================================================
 
 async function showMemory() {
 
     const modal =
         document.getElementById(
-            "memoryModal"
+            "memory-modal"
         );
+
 
     const memoryList =
         document.getElementById(
-            "memoryList"
+            "memory-list"
         );
 
+
     if (!modal || !memoryList) {
+
+        console.error(
+            "Memory elements not found."
+        );
+
         return;
     }
+
+
+    modal.classList.remove(
+        "hidden"
+    );
+
 
     modal.style.display =
         "flex";
 
+
     memoryList.innerHTML =
         "<p>Loading memories...</p>";
+
 
     try {
 
@@ -534,19 +602,24 @@ async function showMemory() {
                 `${API_URL}/long-term-memory`
             );
 
+
         if (!response.ok) {
 
             throw new Error(
                 "Failed to load memories"
             );
+
         }
+
 
         const data =
             await response.json();
 
+
         const memories =
             data.long_term_memory ||
             [];
+
 
         if (
             memories.length === 0
@@ -558,8 +631,10 @@ async function showMemory() {
             return;
         }
 
+
         memoryList.innerHTML =
             "";
+
 
         memories.forEach(
             memory => {
@@ -569,8 +644,10 @@ async function showMemory() {
                         "div"
                     );
 
+
                 item.className =
                     "memory-item";
+
 
                 item.innerHTML = `
                     <div class="memory-text">
@@ -586,11 +663,14 @@ async function showMemory() {
                     </div>
                 `;
 
+
                 memoryList.appendChild(
                     item
                 );
+
             }
         );
+
 
     } catch (error) {
 
@@ -599,8 +679,10 @@ async function showMemory() {
             error
         );
 
+
         memoryList.innerHTML =
             "<p>❌ Could not load memories.</p>";
+
     }
 }
 
@@ -613,19 +695,27 @@ function closeMemory() {
 
     const modal =
         document.getElementById(
-            "memoryModal"
+            "memory-modal"
         );
 
-    if (modal) {
 
-        modal.style.display =
-            "none";
+    if (!modal) {
+        return;
     }
+
+
+    modal.classList.add(
+        "hidden"
+    );
+
+
+    modal.style.display =
+        "none";
 }
 
 
 // ============================================================
-// CLOSE MODAL OUTSIDE CLICK
+// CLOSE MODAL OUTSIDE
 // ============================================================
 
 window.addEventListener(
@@ -634,8 +724,9 @@ window.addEventListener(
 
         const modal =
             document.getElementById(
-                "memoryModal"
+                "memory-modal"
             );
+
 
         if (
             modal &&
@@ -643,7 +734,9 @@ window.addEventListener(
         ) {
 
             closeMemory();
+
         }
+
     }
 );
 
@@ -659,9 +752,11 @@ async function clearMemory() {
             "Are you sure you want to clear Asta's long-term memory?"
         );
 
+
     if (!confirmed) {
         return;
     }
+
 
     try {
 
@@ -673,18 +768,23 @@ async function clearMemory() {
                 }
             );
 
+
         if (!response.ok) {
 
             throw new Error(
                 "Failed to clear memory"
             );
+
         }
 
+
         await showMemory();
+
 
         alert(
             "Asta's long-term memory has been cleared."
         );
+
 
     } catch (error) {
 
@@ -693,15 +793,17 @@ async function clearMemory() {
             error
         );
 
+
         alert(
             "Could not clear memory."
         );
+
     }
 }
 
 
 // ============================================================
-// CHECK ASTA HEALTH
+// HEALTH CHECK
 // ============================================================
 
 async function checkHealth() {
@@ -711,6 +813,7 @@ async function checkHealth() {
             "systemStatus"
         );
 
+
     try {
 
         const response =
@@ -718,15 +821,19 @@ async function checkHealth() {
                 `${API_URL}/health`
             );
 
+
         if (!response.ok) {
 
             throw new Error(
                 "Health check failed"
             );
+
         }
+
 
         const data =
             await response.json();
+
 
         if (
             data.gemini_configured
@@ -735,19 +842,25 @@ async function checkHealth() {
             if (statusElement) {
 
                 statusElement.textContent =
-                    "🟢 Asta is online";
+                    "● Online";
+
             }
 
             return true;
+
         }
+
 
         if (statusElement) {
 
             statusElement.textContent =
-                "🟡 AI configuration incomplete";
+                "● AI configuration incomplete";
+
         }
 
+
         return false;
+
 
     } catch (error) {
 
@@ -756,11 +869,14 @@ async function checkHealth() {
             error
         );
 
+
         if (statusElement) {
 
             statusElement.textContent =
-                "🔴 Asta is offline";
+                "● Offline";
+
         }
+
 
         return false;
     }
@@ -780,32 +896,43 @@ async function showSystemStatus() {
                 `${API_URL}/health`
             );
 
+
         if (!response.ok) {
 
             throw new Error(
                 "Health check failed"
             );
+
         }
+
 
         const data =
             await response.json();
 
+
         let message = "";
+
 
         message +=
             data.api === "online"
                 ? "API: 🟢 Online\n"
                 : "API: 🔴 Offline\n";
 
+
         message +=
             data.gemini_configured
                 ? "Gemini: 🟢 Connected\n"
                 : "Gemini: 🔴 Not configured\n";
 
+
         message +=
             `Model: ${data.model}`;
 
-        alert(message);
+
+        alert(
+            message
+        );
+
 
     } catch (error) {
 
@@ -814,48 +941,65 @@ async function showSystemStatus() {
             error
         );
 
+
         alert(
             "❌ Unable to connect to Asta."
         );
+
     }
 }
 
 
 // ============================================================
-// DOM READY
+// INPUT AUTO RESIZE
+// ============================================================
+
+if (messageInput) {
+
+    messageInput.addEventListener(
+        "input",
+        function() {
+
+            this.style.height =
+                "auto";
+
+
+            this.style.height =
+                Math.min(
+                    this.scrollHeight,
+                    200
+                ) + "px";
+
+        }
+    );
+
+}
+
+
+// ============================================================
+// INITIALIZE
 // ============================================================
 
 document.addEventListener(
     "DOMContentLoaded",
     function() {
 
-        const messageInput =
-            getMessageInput();
-
-        if (messageInput) {
-
-            // Auto-resize only.
-            // DO NOT add another keydown listener here.
-            messageInput.addEventListener(
-                "input",
-                function() {
-
-                    this.style.height =
-                        "auto";
-
-                    this.style.height =
-                        Math.min(
-                            this.scrollHeight,
-                            200
-                        ) + "px";
-                }
-            );
-        }
-
         checkHealth();
+
 
         console.log(
             "Asta frontend loaded successfully."
         );
+
+        console.log(
+            "Chat container:",
+            chatContainer
+        );
+
+        console.log(
+            "Message input:",
+            messageInput
+        );
+
     }
 );
