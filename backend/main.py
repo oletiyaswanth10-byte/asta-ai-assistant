@@ -4,8 +4,7 @@ from pydantic import BaseModel
 import requests
 import sqlite3
 import json
-import re
-from typing import Optional
+import os
 
 
 # ============================================================
@@ -13,8 +12,9 @@ from typing import Optional
 # ============================================================
 
 DATABASE = "backend/memory.db"
-OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
-MODEL = "qwen2.5:7b"
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL = "gemini-2.5-flash"
 
 MAX_RECENT_MESSAGES = 12
 MAX_MEMORIES = 50
@@ -26,8 +26,8 @@ MAX_MEMORIES = 50
 
 app = FastAPI(
     title="Asta AI",
-    description="Local personal AI assistant powered by Ollama",
-    version="1.0"
+    description="Asta - Personal AI Assistant",
+    version="2.0"
 )
 
 
@@ -113,14 +113,12 @@ class MemoryRequest(BaseModel):
 # ============================================================
 
 def get_connection():
-
     return sqlite3.connect(DATABASE)
 
 
 def init_database():
 
     connection = get_connection()
-
     cursor = connection.cursor()
 
     cursor.execute("""
@@ -145,13 +143,12 @@ def init_database():
 
 
 # ============================================================
-# CONVERSATION MEMORY
+# SAVE CONVERSATION
 # ============================================================
 
 def save_message(role, message):
 
     connection = get_connection()
-
     cursor = connection.cursor()
 
     cursor.execute(
@@ -166,10 +163,13 @@ def save_message(role, message):
     connection.close()
 
 
+# ============================================================
+# GET RECENT CONVERSATION
+# ============================================================
+
 def get_recent_messages(limit=MAX_RECENT_MESSAGES):
 
     connection = get_connection()
-
     cursor = connection.cursor()
 
     cursor.execute(
@@ -201,7 +201,6 @@ def save_memory(memory):
         return
 
     connection = get_connection()
-
     cursor = connection.cursor()
 
     cursor.execute(
@@ -219,7 +218,6 @@ def save_memory(memory):
 def get_memories():
 
     connection = get_connection()
-
     cursor = connection.cursor()
 
     cursor.execute(
@@ -240,10 +238,70 @@ def get_memories():
 
 
 # ============================================================
+# GEMINI API
+# ============================================================
+
+def call_gemini(prompt):
+
+    if not GEMINI_API_KEY:
+        raise Exception("GEMINI_API_KEY is not configured")
+
+    url = (
+        f"https://generativelanguage.googleapis.com/"
+        f"v1beta/models/{GEMINI_MODEL}:generateContent"
+    )
+
+    headers = {
+        "x-goog-api-key": GEMINI_API_KEY,
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {
+                        "text": prompt
+                    }
+                ]
+            }
+        ]
+    }
+
+    response = requests.post(
+        url,
+        headers=headers,
+        json=payload,
+        timeout=180
+    )
+
+    response.raise_for_status()
+
+    data = response.json()
+
+    try:
+
+        return (
+            data["candidates"][0]
+            ["content"]["parts"][0]["text"]
+            .strip()
+        )
+
+    except (KeyError, IndexError):
+
+        print("Gemini response:", data)
+
+        return "I couldn't generate a response."
+
+
+# ============================================================
 # AUTOMATIC MEMORY EXTRACTION
 # ============================================================
 
 def extract_memory(user_message):
+
+    if not GEMINI_API_KEY:
+        return
 
     prompt = f"""
 You are a long-term memory extraction system.
@@ -253,7 +311,7 @@ Analyze this user message.
 Save only useful, non-sensitive facts that may help a personal
 AI assistant understand the user in future conversations.
 
-Examples of useful information:
+Examples:
 
 - Name
 - College
@@ -293,18 +351,36 @@ Otherwise:
 }}
 
 USER MESSAGE:
+
 {user_message}
 """
 
     try:
 
+        url = (
+            f"https://generativelanguage.googleapis.com/"
+            f"v1beta/models/{GEMINI_MODEL}:generateContent"
+        )
+
         response = requests.post(
-            OLLAMA_URL,
+            url,
+            headers={
+                "x-goog-api-key": GEMINI_API_KEY,
+                "Content-Type": "application/json"
+            },
             json={
-                "model": MODEL,
-                "prompt": prompt,
-                "stream": False,
-                "format": "json"
+                "contents": [
+                    {
+                        "parts": [
+                            {
+                                "text": prompt
+                            }
+                        ]
+                    }
+                ],
+                "generationConfig": {
+                    "responseMimeType": "application/json"
+                }
             },
             timeout=120
         )
@@ -313,7 +389,10 @@ USER MESSAGE:
 
         data = response.json()
 
-        raw_result = data.get("response", "{}")
+        raw_result = (
+            data["candidates"][0]
+            ["content"]["parts"][0]["text"]
+        )
 
         result = json.loads(raw_result)
 
@@ -341,7 +420,8 @@ def build_prompt():
 
     prompt = ASTA_SYSTEM_PROMPT + "\n\n"
 
-    # Long-term memories
+    # Long-term memory
+
     if memories:
 
         prompt += "IMPORTANT USER INFORMATION:\n"
@@ -353,13 +433,12 @@ def build_prompt():
         prompt += "\n"
 
     # Recent conversation
+
     prompt += "RECENT CONVERSATION:\n"
 
     for role, message in recent_messages:
 
-        prompt += (
-            f"{role.upper()}: {message}\n"
-        )
+        prompt += f"{role.upper()}: {message}\n"
 
     prompt += "\nASTA:"
 
@@ -367,33 +446,7 @@ def build_prompt():
 
 
 # ============================================================
-# OLLAMA
-# ============================================================
-
-def ask_ollama(prompt):
-
-    response = requests.post(
-        OLLAMA_URL,
-        json={
-            "model": MODEL,
-            "prompt": prompt,
-            "stream": False
-        },
-        timeout=180
-    )
-
-    response.raise_for_status()
-
-    data = response.json()
-
-    return data.get(
-        "response",
-        "I couldn't generate a response."
-    ).strip()
-
-
-# ============================================================
-# INITIALIZE
+# INITIALIZE DATABASE
 # ============================================================
 
 init_database()
@@ -409,7 +462,7 @@ def home():
     return {
         "status": "online",
         "assistant": "Asta",
-        "model": MODEL
+        "model": GEMINI_MODEL
     }
 
 
@@ -420,23 +473,10 @@ def home():
 @app.get("/health")
 def health():
 
-    try:
-
-        response = requests.get(
-            "http://127.0.0.1:11434/api/tags",
-            timeout=5
-        )
-
-        ollama_online = response.ok
-
-    except Exception:
-
-        ollama_online = False
-
     return {
         "api": "online",
-        "ollama": ollama_online,
-        "model": MODEL
+        "gemini_configured": bool(GEMINI_API_KEY),
+        "model": GEMINI_MODEL
     }
 
 
@@ -456,34 +496,46 @@ def chat(request: ChatRequest):
         }
 
     # Save user message
+
     save_message(
         "user",
         message
     )
 
-    # Automatically extract useful memory
+    # Extract long-term memory
+
     extract_memory(message)
 
     try:
 
-        # Build prompt with memories + recent conversation
+        # Build complete prompt
+
         prompt = build_prompt()
 
-        # Ask local model
-        assistant_response = ask_ollama(prompt)
+        # Ask Gemini
+
+        assistant_response = call_gemini(prompt)
 
     except requests.exceptions.ConnectionError:
 
         assistant_response = (
-            "❌ I cannot connect to Ollama. "
-            "Please make sure Ollama is running."
+            "❌ I cannot connect to the Gemini API."
         )
 
     except requests.exceptions.Timeout:
 
         assistant_response = (
-            "⏳ The AI model took too long to respond. "
+            "⏳ Gemini took too long to respond. "
             "Please try again."
+        )
+
+    except requests.exceptions.HTTPError as error:
+
+        print("Gemini HTTP error:", error)
+
+        assistant_response = (
+            "❌ Gemini API error. "
+            "Please check your API key and API limits."
         )
 
     except Exception as error:
@@ -491,10 +543,12 @@ def chat(request: ChatRequest):
         print("Chat error:", error)
 
         assistant_response = (
-            "❌ Something went wrong while generating the response."
+            "❌ Something went wrong while generating "
+            "the response."
         )
 
     # Save assistant response
+
     save_message(
         "assistant",
         assistant_response
@@ -513,7 +567,6 @@ def chat(request: ChatRequest):
 def view_memory():
 
     connection = get_connection()
-
     cursor = connection.cursor()
 
     cursor.execute(
@@ -561,7 +614,9 @@ def view_long_term_memory():
 @app.post("/remember")
 def remember(request: MemoryRequest):
 
-    save_memory(request.memory)
+    save_memory(
+        request.memory
+    )
 
     return {
         "message": "Memory saved.",
@@ -577,7 +632,6 @@ def remember(request: MemoryRequest):
 def new_chat():
 
     connection = get_connection()
-
     cursor = connection.cursor()
 
     cursor.execute(
@@ -600,7 +654,6 @@ def new_chat():
 def clear_memory():
 
     connection = get_connection()
-
     cursor = connection.cursor()
 
     cursor.execute(
