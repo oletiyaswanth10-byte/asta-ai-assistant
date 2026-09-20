@@ -1,23 +1,126 @@
 // ============================================================
 // ASTA AI - FRONTEND
+// Complete corrected script.js
 // ============================================================
 
-const API_URL =
-    "https://asta-ai-assistant.onrender.com";
+
+// ============================================================
+// CONFIGURATION
+// ============================================================
+
+const API_URL = "https://asta-ai-assistant.onrender.com";
 
 
 // ============================================================
 // DOM ELEMENTS
+// IMPORTANT:
+// These are initialized only after the HTML has loaded.
 // ============================================================
 
-const messageInput =
-    document.getElementById("message");
+let messageInput = null;
+let chatContainer = null;
+let welcomeScreen = null;
 
-const chatContainer =
-    document.getElementById("chat-box");
 
-const welcomeScreen =
-    document.getElementById("welcomeScreen");
+// ============================================================
+// INITIALIZE DOM
+// ============================================================
+
+function initializeAsta() {
+
+    messageInput =
+        document.getElementById("message");
+
+    chatContainer =
+        document.getElementById("chat-box");
+
+    welcomeScreen =
+        document.getElementById("welcomeScreen");
+
+
+    console.log("Asta frontend initialized.");
+
+    console.log(
+        "Message input:",
+        messageInput
+    );
+
+    console.log(
+        "Chat container:",
+        chatContainer
+    );
+
+    console.log(
+        "Welcome screen:",
+        welcomeScreen
+    );
+
+
+    if (!messageInput) {
+
+        console.error(
+            "Asta error: #message element not found."
+        );
+
+    }
+
+
+    if (!chatContainer) {
+
+        console.error(
+            "Asta error: #chat-box element not found."
+        );
+
+    }
+
+
+    if (!welcomeScreen) {
+
+        console.warn(
+            "Asta warning: #welcomeScreen element not found."
+        );
+
+    }
+
+
+    // Input auto resize
+
+    if (messageInput) {
+
+        messageInput.addEventListener(
+            "input",
+            handleInputResize
+        );
+
+    }
+
+
+    // Check backend
+
+    checkHealth();
+}
+
+
+// ============================================================
+// INPUT AUTO RESIZE
+// ============================================================
+
+function handleInputResize() {
+
+    if (!this) {
+        return;
+    }
+
+
+    this.style.height = "auto";
+
+
+    this.style.height =
+        Math.min(
+            this.scrollHeight,
+            200
+        ) + "px";
+}
 
 
 // ============================================================
@@ -26,11 +129,18 @@ const welcomeScreen =
 
 function escapeHtml(text) {
 
+    if (text === null || text === undefined) {
+        return "";
+    }
+
+
     const div =
         document.createElement("div");
 
+
     div.textContent =
-        text;
+        String(text);
+
 
     return div.innerHTML;
 }
@@ -46,11 +156,14 @@ function formatMessage(text) {
         return "";
     }
 
+
     let safeText =
         escapeHtml(text);
 
 
+    // --------------------------------------------------------
     // Code blocks
+    // --------------------------------------------------------
 
     safeText =
         safeText.replace(
@@ -65,7 +178,9 @@ function formatMessage(text) {
         );
 
 
+    // --------------------------------------------------------
     // Inline code
+    // --------------------------------------------------------
 
     safeText =
         safeText.replace(
@@ -74,7 +189,9 @@ function formatMessage(text) {
         );
 
 
+    // --------------------------------------------------------
     // Bold
+    // --------------------------------------------------------
 
     safeText =
         safeText.replace(
@@ -83,7 +200,9 @@ function formatMessage(text) {
         );
 
 
+    // --------------------------------------------------------
     // Italic
+    // --------------------------------------------------------
 
     safeText =
         safeText.replace(
@@ -92,7 +211,9 @@ function formatMessage(text) {
         );
 
 
+    // --------------------------------------------------------
     // New lines
+    // --------------------------------------------------------
 
     safeText =
         safeText.replace(
@@ -114,6 +235,16 @@ function addMessage(
     text
 ) {
 
+    // Safety check
+
+    if (!chatContainer) {
+
+        chatContainer =
+            document.getElementById("chat-box");
+
+    }
+
+
     if (!chatContainer) {
 
         console.error(
@@ -124,6 +255,10 @@ function addMessage(
     }
 
 
+    // --------------------------------------------------------
+    // Create unique ID
+    // --------------------------------------------------------
+
     const messageId =
         "message-" +
         Date.now() +
@@ -132,6 +267,10 @@ function addMessage(
             .toString(36)
             .substring(2, 8);
 
+
+    // --------------------------------------------------------
+    // Message wrapper
+    // --------------------------------------------------------
 
     const messageDiv =
         document.createElement("div");
@@ -145,7 +284,9 @@ function addMessage(
         messageId;
 
 
+    // --------------------------------------------------------
     // Avatar
+    // --------------------------------------------------------
 
     const avatar =
         document.createElement("div");
@@ -161,7 +302,9 @@ function addMessage(
             : "A";
 
 
+    // --------------------------------------------------------
     // Content
+    // --------------------------------------------------------
 
     const content =
         document.createElement("div");
@@ -171,7 +314,9 @@ function addMessage(
         "message-content";
 
 
+    // --------------------------------------------------------
     // Name
+    // --------------------------------------------------------
 
     const name =
         document.createElement("div");
@@ -187,7 +332,9 @@ function addMessage(
             : "Asta";
 
 
+    // --------------------------------------------------------
     // Text
+    // --------------------------------------------------------
 
     const textElement =
         document.createElement("div");
@@ -201,7 +348,9 @@ function addMessage(
         formatMessage(text);
 
 
+    // --------------------------------------------------------
     // Build message
+    // --------------------------------------------------------
 
     content.appendChild(
         name
@@ -227,6 +376,8 @@ function addMessage(
         messageDiv
     );
 
+
+    // Scroll
 
     scrollToBottom();
 
@@ -263,10 +414,18 @@ function removeMessage(
 
 
 // ============================================================
-// SCROLL
+// SCROLL TO BOTTOM
 // ============================================================
 
 function scrollToBottom() {
+
+    if (!chatContainer) {
+
+        chatContainer =
+            document.getElementById("chat-box");
+
+    }
+
 
     if (!chatContainer) {
         return;
@@ -284,6 +443,26 @@ function scrollToBottom() {
 
 async function sendMessage() {
 
+    // Get DOM elements again if necessary
+
+    if (!messageInput) {
+
+        messageInput =
+            document.getElementById("message");
+
+    }
+
+
+    if (!chatContainer) {
+
+        chatContainer =
+            document.getElementById("chat-box");
+
+    }
+
+
+    // Check input
+
     if (!messageInput) {
 
         console.error(
@@ -294,21 +473,28 @@ async function sendMessage() {
     }
 
 
+    // Get message
+
     const message =
         messageInput.value.trim();
 
 
-    // Ignore empty message
+    // Ignore empty messages
 
     if (!message) {
         return;
     }
 
 
-    // ========================================================
-    // IMPORTANT:
-    // Add user message FIRST.
-    // ========================================================
+    console.log(
+        "User message:",
+        message
+    );
+
+
+    // --------------------------------------------------------
+    // Add USER message FIRST
+    // --------------------------------------------------------
 
     addMessage(
         "user",
@@ -316,7 +502,19 @@ async function sendMessage() {
     );
 
 
+    // --------------------------------------------------------
     // Hide welcome screen
+    // --------------------------------------------------------
+
+    if (!welcomeScreen) {
+
+        welcomeScreen =
+            document.getElementById(
+                "welcomeScreen"
+            );
+
+    }
+
 
     if (welcomeScreen) {
 
@@ -326,7 +524,9 @@ async function sendMessage() {
     }
 
 
-    // Clear input AFTER adding message
+    // --------------------------------------------------------
+    // Clear input
+    // --------------------------------------------------------
 
     messageInput.value =
         "";
@@ -336,9 +536,27 @@ async function sendMessage() {
         "auto";
 
 
-    // ========================================================
-    // THINKING MESSAGE
-    // ========================================================
+    // --------------------------------------------------------
+    // Disable send button
+    // --------------------------------------------------------
+
+    const sendButton =
+        document.getElementById(
+            "send-button"
+        );
+
+
+    if (sendButton) {
+
+        sendButton.disabled =
+            true;
+
+    }
+
+
+    // --------------------------------------------------------
+    // Thinking message
+    // --------------------------------------------------------
 
     const thinkingId =
         addMessage(
@@ -348,6 +566,16 @@ async function sendMessage() {
 
 
     try {
+
+        console.log(
+            "Sending request to:",
+            `${API_URL}/chat`
+        );
+
+
+        // ----------------------------------------------------
+        // API request
+        // ----------------------------------------------------
 
         const response =
             await fetch(
@@ -360,35 +588,75 @@ async function sendMessage() {
                             "application/json"
                     },
 
-                    body: JSON.stringify({
-                        message:
-                            message
-                    })
+                    body:
+                        JSON.stringify({
+                            message:
+                                message
+                        })
                 }
             );
 
 
+        console.log(
+            "Server response status:",
+            response.status
+        );
+
+
+        // ----------------------------------------------------
+        // Check HTTP status
+        // ----------------------------------------------------
+
         if (!response.ok) {
 
+            let errorText = "";
+
+            try {
+
+                errorText =
+                    await response.text();
+
+            } catch (error) {
+
+                errorText =
+                    "Unknown server error.";
+
+            }
+
+
             throw new Error(
-                `Server error: ${response.status}`
+                `Server error ${response.status}: ${errorText}`
             );
 
         }
 
 
+        // ----------------------------------------------------
+        // Read JSON
+        // ----------------------------------------------------
+
         const data =
             await response.json();
 
 
+        console.log(
+            "Asta response:",
+            data
+        );
+
+
+        // ----------------------------------------------------
         // Remove thinking
+        // ----------------------------------------------------
 
         removeMessage(
             thinkingId
         );
 
 
+        // ----------------------------------------------------
         // Show Asta response
+        // ----------------------------------------------------
 
         addMessage(
             "assistant",
@@ -405,18 +673,34 @@ async function sendMessage() {
         );
 
 
+        // Remove thinking message
+
         removeMessage(
             thinkingId
         );
 
 
+        // Show error
+
         addMessage(
             "assistant",
-            "❌ I couldn't connect to Asta. Please try again."
+            "I couldn't connect to Asta. Please check that the Asta server is online and try again."
         );
 
     }
 
+
+    // Enable send button
+
+    if (sendButton) {
+
+        sendButton.disabled =
+            false;
+
+    }
+
+
+    // Scroll
 
     scrollToBottom();
 }
@@ -428,6 +712,13 @@ async function sendMessage() {
 
 function handleKey(event) {
 
+    if (!event) {
+        return true;
+    }
+
+
+    // Enter without Shift = Send
+
     if (
         event.key === "Enter" &&
         !event.shiftKey
@@ -435,23 +726,37 @@ function handleKey(event) {
 
         event.preventDefault();
 
+
         sendMessage();
+
 
         return false;
     }
 
+
+    // Shift + Enter = New line
 
     return true;
 }
 
 
 // ============================================================
-// SUGGESTION
+// SUGGESTION BUTTONS
 // ============================================================
 
 function useSuggestion(
     text
 ) {
+
+    if (!messageInput) {
+
+        messageInput =
+            document.getElementById(
+                "message"
+            );
+
+    }
+
 
     if (!messageInput) {
         return;
@@ -466,7 +771,9 @@ function useSuggestion(
 
 
     messageInput.dispatchEvent(
-        new Event("input")
+        new Event(
+            "input"
+        )
     );
 }
 
@@ -497,7 +804,19 @@ async function newChat() {
         }
 
 
-        // Remove chat messages
+        // ----------------------------------------------------
+        // Clear messages
+        // ----------------------------------------------------
+
+        if (!chatContainer) {
+
+            chatContainer =
+                document.getElementById(
+                    "chat-box"
+                );
+
+        }
+
 
         if (chatContainer) {
 
@@ -515,7 +834,19 @@ async function newChat() {
         }
 
 
-        // Show welcome screen
+        // ----------------------------------------------------
+        // Show welcome
+        // ----------------------------------------------------
+
+        if (!welcomeScreen) {
+
+            welcomeScreen =
+                document.getElementById(
+                    "welcomeScreen"
+                );
+
+        }
+
 
         if (welcomeScreen) {
 
@@ -525,7 +856,19 @@ async function newChat() {
         }
 
 
+        // ----------------------------------------------------
         // Clear input
+        // ----------------------------------------------------
+
+        if (!messageInput) {
+
+            messageInput =
+                document.getElementById(
+                    "message"
+                );
+
+        }
+
 
         if (messageInput) {
 
@@ -536,6 +879,11 @@ async function newChat() {
                 "auto";
 
         }
+
+
+        console.log(
+            "New chat started."
+        );
 
 
     } catch (error) {
@@ -582,6 +930,8 @@ async function showMemory() {
     }
 
 
+    // Show modal
+
     modal.classList.remove(
         "hidden"
     );
@@ -621,6 +971,10 @@ async function showMemory() {
             [];
 
 
+        // ----------------------------------------------------
+        // No memories
+        // ----------------------------------------------------
+
         if (
             memories.length === 0
         ) {
@@ -631,6 +985,10 @@ async function showMemory() {
             return;
         }
 
+
+        // ----------------------------------------------------
+        // Display memories
+        // ----------------------------------------------------
 
         memoryList.innerHTML =
             "";
@@ -681,7 +1039,7 @@ async function showMemory() {
 
 
         memoryList.innerHTML =
-            "<p>❌ Could not load memories.</p>";
+            "<p>Could not load memories.</p>";
 
     }
 }
@@ -715,7 +1073,7 @@ function closeMemory() {
 
 
 // ============================================================
-// CLOSE MODAL OUTSIDE
+// CLOSE MODAL WHEN CLICKING OUTSIDE
 // ============================================================
 
 window.addEventListener(
@@ -846,8 +1204,8 @@ async function checkHealth() {
 
             }
 
-            return true;
 
+            return true;
         }
 
 
@@ -913,17 +1271,23 @@ async function showSystemStatus() {
         let message = "";
 
 
+        // API
+
         message +=
             data.api === "online"
                 ? "API: 🟢 Online\n"
                 : "API: 🔴 Offline\n";
 
 
+        // Gemini
+
         message +=
             data.gemini_configured
                 ? "Gemini: 🟢 Connected\n"
                 : "Gemini: 🔴 Not configured\n";
 
+
+        // Model
 
         message +=
             `Model: ${data.model}`;
@@ -943,7 +1307,7 @@ async function showSystemStatus() {
 
 
         alert(
-            "❌ Unable to connect to Asta."
+            "Unable to connect to Asta."
         );
 
     }
@@ -951,55 +1315,19 @@ async function showSystemStatus() {
 
 
 // ============================================================
-// INPUT AUTO RESIZE
-// ============================================================
-
-if (messageInput) {
-
-    messageInput.addEventListener(
-        "input",
-        function() {
-
-            this.style.height =
-                "auto";
-
-
-            this.style.height =
-                Math.min(
-                    this.scrollHeight,
-                    200
-                ) + "px";
-
-        }
-    );
-
-}
-
-
-// ============================================================
-// INITIALIZE
+// INITIALIZE AFTER HTML LOAD
 // ============================================================
 
 document.addEventListener(
     "DOMContentLoaded",
     function() {
 
-        checkHealth();
-
-
         console.log(
             "Asta frontend loaded successfully."
         );
 
-        console.log(
-            "Chat container:",
-            chatContainer
-        );
 
-        console.log(
-            "Message input:",
-            messageInput
-        );
+        initializeAsta();
 
     }
 );
