@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
 
     <meta
@@ -10,41 +8,143 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Asta — Personal AI Assistant</title>
+    <title>Asta AI Assistant</title>
 
     <link
         rel="stylesheet"
-        href="/style.css"
+        href="/style.css?v=3"
     >
-
 </head>
 
 <body>
 
 <div class="app">
 
-    <!-- ====================================================
+    <!-- =========================================================
          SIDEBAR
-         ==================================================== -->
+         ========================================================= -->
 
     <aside class="sidebar">
 
-        <div>
-
-            <!-- BRAND -->
+        <div class="sidebar-header">
 
             <div class="brand">
-
-                <div class="brand-icon">
-                    A
-                </div>
+                <div class="brand-logo">A</div>
 
                 <div>
-
                     <h2>Asta</h2>
+                    <span>AI Assistant</span>
+                </div>
+            </div>
 
-                    <span>
-                        Personal AI
+        </div>
+
+
+        <!-- New Chat -->
+
+        <button
+            class="new-chat"
+            onclick="newChat()"
+        >
+            <span>＋</span>
+            <span>New Chat</span>
+        </button>
+
+
+        <!-- Sidebar Menu -->
+
+        <div class="sidebar-menu">
+
+            <button
+                class="side-button"
+                onclick="showMemory()"
+            >
+                <span>🧠</span>
+                <span>Memory</span>
+            </button>
+
+
+            <button
+                class="side-button"
+                onclick="showSystemStatus()"
+            >
+                <span>⚡</span>
+                <span>System Status</span>
+            </button>
+
+        </div>
+
+
+        <!-- Spacer -->
+
+        <div class="sidebar-spacer"></div>
+
+
+        <!-- Model Card -->
+
+        <div class="model-card">
+
+            <div class="model-icon">
+                ✦
+            </div>
+
+            <div class="model-info">
+
+                <strong>
+                    Gemini 2.5 Flash
+                </strong>
+
+                <small>
+                    Cloud AI
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <!-- Sidebar Footer -->
+
+        <div class="sidebar-footer">
+
+            <span>
+                Asta AI
+            </span>
+
+            <span>
+                v1.0
+            </span>
+
+        </div>
+
+    </aside>
+
+
+
+    <!-- =========================================================
+         MAIN CHAT AREA
+         ========================================================= -->
+
+    <main class="main">
+
+
+        <!-- Top Bar -->
+
+        <header class="topbar">
+
+            <div class="topbar-left">
+
+                <div class="topbar-title">
+
+                    <strong>
+                        Asta
+                    </strong>
+
+                    <span
+                        class="online"
+                        id="systemStatus"
+                    >
+                        ● Online
                     </span>
 
                 </div>
@@ -52,124 +152,31 @@
             </div>
 
 
-            <!-- NEW CHAT -->
+            <div class="topbar-right">
 
-            <button
-                class="new-chat"
-                onclick="newChat()"
-            >
-
-                <span>＋</span>
-
-                New Chat
-
-            </button>
-
-
-            <!-- SIDEBAR SECTION -->
-
-            <div class="sidebar-section">
-
-                <p class="section-title">
-                    Assistant
-                </p>
-
-
-                <button
-                    class="side-button"
-                    onclick="showMemory()"
-                >
-                    🧠 Memory
-                </button>
-
-
-                <button
-                    class="side-button"
-                    onclick="showSystemStatus()"
-                >
-                    ⚡ System Status
-                </button>
-
-            </div>
-
-        </div>
-
-
-        <!-- SIDEBAR BOTTOM -->
-
-        <div class="sidebar-bottom">
-
-            <div class="model-card">
-
-                <span
-                    class="status-dot"
-                ></span>
-
-                <div>
-
-                    <strong>
-                        Gemini 2.5 Flash
-                    </strong>
-
-                    <small>
-                        Cloud AI • Asta
-                    </small>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </aside>
-
-
-    <!-- ====================================================
-         MAIN AREA
-         ==================================================== -->
-
-    <main class="main">
-
-
-        <!-- TOP BAR -->
-
-        <header class="topbar">
-
-            <div>
-
-                <strong>
-                    Asta
-                </strong>
-
-                <span
-                    class="online"
-                    id="systemStatus"
-                >
-                    ● Checking...
+                <span class="model-name">
+                    Gemini 2.5 Flash
                 </span>
 
             </div>
 
-
-            <span class="model-name">
-
-                Gemini 2.5 Flash
-
-            </span>
-
         </header>
 
 
-        <!-- =================================================
-             CHAT AREA
-             ================================================= -->
+
+        <!-- =====================================================
+             CHAT BOX
+             ===================================================== -->
 
         <div
             id="chat-box"
             class="chat-box"
         >
 
-            <!-- WELCOME -->
+
+            <!-- =================================================
+                 WELCOME SCREEN
+                 ================================================= -->
 
             <div
                 id="welcomeScreen"
@@ -191,7 +198,8 @@
                 </p>
 
 
-                <!-- SUGGESTIONS -->
+
+                <!-- Suggestions -->
 
                 <div class="suggestions">
 
@@ -200,37 +208,63 @@
                         onclick="useSuggestion('Explain Python from basics')"
                     >
 
-                        🐍 Explain Python from basics
+                        <span class="suggestion-icon">
+                            🐍
+                        </span>
+
+                        <span>
+                            Explain Python from basics
+                        </span>
 
                     </button>
+
 
 
                     <button
                         onclick="useSuggestion('Help me learn DSA')"
                     >
 
-                        💻 Help me learn DSA
+                        <span class="suggestion-icon">
+                            💻
+                        </span>
+
+                        <span>
+                            Help me learn DSA
+                        </span>
 
                     </button>
+
 
 
                     <button
                         onclick="useSuggestion('Give me a data science project idea')"
                     >
 
-                        📊 Data science project
+                        <span class="suggestion-icon">
+                            📊
+                        </span>
+
+                        <span>
+                            Give me a data science project idea
+                        </span>
 
                     </button>
+
 
 
                     <button
                         onclick="useSuggestion('What can you help me with?')"
                     >
 
-                        ✨ What can you do?
+                        <span class="suggestion-icon">
+                            ✨
+                        </span>
+
+                        <span>
+                            What can you help me with?
+                        </span>
 
                     </button>
-
 
                 </div>
 
@@ -239,12 +273,12 @@
         </div>
 
 
-        <!-- =================================================
+
+        <!-- =====================================================
              INPUT AREA
-             ================================================= -->
+             ===================================================== -->
 
         <div class="input-wrapper">
-
 
             <div class="input-area">
 
@@ -253,43 +287,41 @@
                     id="message"
                     rows="1"
                     placeholder="Message Asta..."
+                    autocomplete="off"
+                    spellcheck="true"
                     onkeydown="handleKey(event)"
                 ></textarea>
 
 
+
                 <button
                     id="send-button"
+                    type="button"
                     onclick="sendMessage()"
-                    aria-label="Send"
+                    aria-label="Send message"
+                    title="Send message"
                 >
-
                     ➤
-
                 </button>
-
 
             </div>
 
 
             <p class="disclaimer">
-
-                Asta can make mistakes.
-                Check important information.
-
+                Asta can make mistakes. Check important information.
             </p>
 
-
         </div>
-
 
     </main>
 
 </div>
 
 
-<!-- ========================================================
+
+<!-- =============================================================
      MEMORY MODAL
-     ======================================================== -->
+     ============================================================= -->
 
 <div
     id="memory-modal"
@@ -307,12 +339,15 @@
 
 
             <button
+                type="button"
                 onclick="closeMemory()"
+                aria-label="Close memory"
             >
                 ×
             </button>
 
         </div>
+
 
 
         <div id="memory-list">
@@ -322,27 +357,30 @@
         </div>
 
 
+
         <button
             class="clear-memory"
+            type="button"
             onclick="clearMemory()"
         >
-
             Clear Long-Term Memory
-
         </button>
-
 
     </div>
 
 </div>
 
 
-<!-- ========================================================
-     JAVASCRIPT
-     ======================================================== -->
 
-<script src="/script.js"></script>
+<!-- =============================================================
+     JAVASCRIPT
+     
+     IMPORTANT:
+     The script is loaded AFTER the complete HTML so that all
+     elements such as #chat-box and #message already exist.
+     ============================================================= -->
+
+<script src="/script.js?v=3"></script>
 
 </body>
-
 </html>
