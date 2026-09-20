@@ -6,158 +6,54 @@ const API_URL = "https://asta-ai-assistant.onrender.com";
 
 
 // ============================================================
-// DOM ELEMENTS
+// FIND ELEMENTS
+// Supports multiple possible IDs used by the Asta interface
 // ============================================================
 
-const messageInput = document.getElementById("messageInput");
-const chatContainer = document.getElementById("chatContainer");
-const welcomeScreen = document.getElementById("welcomeScreen");
+function getMessageInput() {
 
-
-// ============================================================
-// SEND MESSAGE
-// ============================================================
-
-async function sendMessage() {
-
-    const message = messageInput.value.trim();
-
-    if (!message) {
-        return;
-    }
-
-    // Hide welcome screen
-    if (welcomeScreen) {
-        welcomeScreen.style.display = "none";
-    }
-
-    // Show user message
-    addMessage("user", message);
-
-    // Clear input
-    messageInput.value = "";
-
-    // Reset textarea height
-    messageInput.style.height = "auto";
-
-    // Show thinking message
-    const thinkingId = addMessage(
-        "assistant",
-        "Asta is thinking...",
-        true
+    return (
+        document.getElementById("messageInput") ||
+        document.getElementById("chatInput") ||
+        document.getElementById("userInput") ||
+        document.getElementById("prompt") ||
+        document.querySelector("textarea")
     );
+}
 
-    try {
 
-        const response = await fetch(
-            `${API_URL}/chat`,
-            {
-                method: "POST",
+function getChatContainer() {
 
-                headers: {
-                    "Content-Type": "application/json"
-                },
+    return (
+        document.getElementById("chatContainer") ||
+        document.getElementById("messages") ||
+        document.getElementById("chatMessages") ||
+        document.querySelector(".chat-messages") ||
+        document.querySelector(".messages")
+    );
+}
 
-                body: JSON.stringify({
-                    message: message
-                })
-            }
-        );
 
-        if (!response.ok) {
-            throw new Error(
-                `Server error: ${response.status}`
-            );
-        }
+function getWelcomeScreen() {
 
-        const data = await response.json();
-
-        // Remove thinking message
-        removeMessage(thinkingId);
-
-        // Show response
-        addMessage(
-            "assistant",
-            data.response || "I couldn't generate a response."
-        );
-
-    } catch (error) {
-
-        console.error("Chat error:", error);
-
-        removeMessage(thinkingId);
-
-        addMessage(
-            "assistant",
-            "❌ I couldn't connect to Asta. Please try again."
-        );
-    }
-
-    scrollToBottom();
+    return (
+        document.getElementById("welcomeScreen") ||
+        document.querySelector(".welcome-screen")
+    );
 }
 
 
 // ============================================================
-// ADD MESSAGE
+// ESCAPE HTML
 // ============================================================
 
-function addMessage(role, text, temporary = false) {
+function escapeHtml(text) {
 
-    const messageId =
-        "message-" +
-        Date.now() +
-        "-" +
-        Math.random()
-            .toString(36)
-            .substring(2, 8);
+    const div = document.createElement("div");
 
-    const messageDiv = document.createElement("div");
+    div.textContent = text;
 
-    messageDiv.className =
-        `message ${role}-message`;
-
-    messageDiv.id = messageId;
-
-    // Avatar
-    const avatar = document.createElement("div");
-
-    avatar.className = "message-avatar";
-
-    avatar.textContent =
-        role === "user" ? "You" : "A";
-
-    // Content
-    const content = document.createElement("div");
-
-    content.className = "message-content";
-
-    // Name
-    const name = document.createElement("div");
-
-    name.className = "message-name";
-
-    name.textContent =
-        role === "user" ? "You" : "Asta";
-
-    // Text
-    const textElement = document.createElement("div");
-
-    textElement.className = "message-text";
-
-    textElement.innerHTML =
-        formatMessage(text);
-
-    content.appendChild(name);
-    content.appendChild(textElement);
-
-    messageDiv.appendChild(avatar);
-    messageDiv.appendChild(content);
-
-    chatContainer.appendChild(messageDiv);
-
-    scrollToBottom();
-
-    return messageId;
+    return div.innerHTML;
 }
 
 
@@ -171,7 +67,6 @@ function formatMessage(text) {
         return "";
     }
 
-    // Escape HTML
     let safeText = escapeHtml(text);
 
     // Code blocks
@@ -214,16 +109,101 @@ function formatMessage(text) {
 
 
 // ============================================================
-// ESCAPE HTML
+// ADD MESSAGE
 // ============================================================
 
-function escapeHtml(text) {
+function addMessage(
+    role,
+    text,
+    temporary = false
+) {
 
-    const div = document.createElement("div");
+    const chatContainer = getChatContainer();
 
-    div.textContent = text;
+    if (!chatContainer) {
 
-    return div.innerHTML;
+        console.error(
+            "Asta error: chat container not found."
+        );
+
+        return null;
+    }
+
+    const messageId =
+        "message-" +
+        Date.now() +
+        "-" +
+        Math.random()
+            .toString(36)
+            .substring(2, 8);
+
+    const messageDiv =
+        document.createElement("div");
+
+    messageDiv.className =
+        `message ${role}-message`;
+
+    messageDiv.id =
+        messageId;
+
+    const avatar =
+        document.createElement("div");
+
+    avatar.className =
+        "message-avatar";
+
+    avatar.textContent =
+        role === "user"
+            ? "You"
+            : "A";
+
+    const content =
+        document.createElement("div");
+
+    content.className =
+        "message-content";
+
+    const name =
+        document.createElement("div");
+
+    name.className =
+        "message-name";
+
+    name.textContent =
+        role === "user"
+            ? "You"
+            : "Asta";
+
+    const textElement =
+        document.createElement("div");
+
+    textElement.className =
+        "message-text";
+
+    textElement.innerHTML =
+        formatMessage(text);
+
+    content.appendChild(name);
+
+    content.appendChild(
+        textElement
+    );
+
+    messageDiv.appendChild(
+        avatar
+    );
+
+    messageDiv.appendChild(
+        content
+    );
+
+    chatContainer.appendChild(
+        messageDiv
+    );
+
+    scrollToBottom();
+
+    return messageId;
 }
 
 
@@ -231,9 +211,18 @@ function escapeHtml(text) {
 // REMOVE MESSAGE
 // ============================================================
 
-function removeMessage(messageId) {
+function removeMessage(
+    messageId
+) {
 
-    const message = document.getElementById(messageId);
+    if (!messageId) {
+        return;
+    }
+
+    const message =
+        document.getElementById(
+            messageId
+        );
 
     if (message) {
         message.remove();
@@ -242,10 +231,13 @@ function removeMessage(messageId) {
 
 
 // ============================================================
-// SCROLL
+// SCROLL TO BOTTOM
 // ============================================================
 
 function scrollToBottom() {
+
+    const chatContainer =
+        getChatContainer();
 
     if (!chatContainer) {
         return;
@@ -257,43 +249,140 @@ function scrollToBottom() {
 
 
 // ============================================================
-// ENTER KEY
+// SEND MESSAGE
 // ============================================================
 
-if (messageInput) {
+async function sendMessage() {
 
-    messageInput.addEventListener(
-        "keydown",
-        function(event) {
+    const messageInput =
+        getMessageInput();
 
-            if (
-                event.key === "Enter" &&
-                !event.shiftKey
-            ) {
+    if (!messageInput) {
 
-                event.preventDefault();
+        console.error(
+            "Asta error: message input not found."
+        );
 
-                sendMessage();
-            }
-        }
+        return;
+    }
+
+    const message =
+        messageInput.value.trim();
+
+    if (!message) {
+        return;
+    }
+
+    const welcomeScreen =
+        getWelcomeScreen();
+
+    // Hide welcome screen
+    if (welcomeScreen) {
+        welcomeScreen.style.display =
+            "none";
+    }
+
+    // Show user message
+    addMessage(
+        "user",
+        message
     );
 
+    // Clear input
+    messageInput.value = "";
 
-    // Auto resize textarea
+    messageInput.style.height =
+        "auto";
 
-    messageInput.addEventListener(
-        "input",
-        function() {
+    // Thinking message
+    const thinkingId =
+        addMessage(
+            "assistant",
+            "Asta is thinking...",
+            true
+        );
 
-            this.style.height = "auto";
+    try {
 
-            this.style.height =
-                Math.min(
-                    this.scrollHeight,
-                    200
-                ) + "px";
+        const response =
+            await fetch(
+                `${API_URL}/chat`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        message: message
+                    })
+                }
+            );
+
+        if (!response.ok) {
+
+            throw new Error(
+                `Server error: ${response.status}`
+            );
         }
-    );
+
+        const data =
+            await response.json();
+
+        removeMessage(
+            thinkingId
+        );
+
+        addMessage(
+            "assistant",
+            data.response ||
+                "I couldn't generate a response."
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Chat error:",
+            error
+        );
+
+        removeMessage(
+            thinkingId
+        );
+
+        addMessage(
+            "assistant",
+            "❌ I couldn't connect to Asta. Please try again."
+        );
+    }
+
+    scrollToBottom();
+}
+
+
+// ============================================================
+// HANDLE ENTER KEY
+// ============================================================
+// Your HTML currently calls handleKey(event)
+// ============================================================
+
+function handleKey(event) {
+
+    if (
+        event.key === "Enter" &&
+        !event.shiftKey
+    ) {
+
+        event.preventDefault();
+
+        sendMessage();
+
+        return false;
+    }
+
+    return true;
 }
 
 
@@ -303,11 +392,20 @@ if (messageInput) {
 
 function useSuggestion(text) {
 
+    const messageInput =
+        getMessageInput();
+
     if (!messageInput) {
+
+        console.error(
+            "Asta error: message input not found."
+        );
+
         return;
     }
 
-    messageInput.value = text;
+    messageInput.value =
+        text;
 
     messageInput.focus();
 
@@ -325,35 +423,56 @@ async function newChat() {
 
     try {
 
-        const response = await fetch(
-            `${API_URL}/new-chat`,
-            {
-                method: "POST"
-            }
-        );
-
-        if (!response.ok) {
-            throw new Error("Failed to start new chat");
-        }
-
-        // Remove messages
-        const messages =
-            chatContainer.querySelectorAll(
-                ".message"
+        const response =
+            await fetch(
+                `${API_URL}/new-chat`,
+                {
+                    method: "POST"
+                }
             );
 
-        messages.forEach(
-            message => message.remove()
-        );
+        if (!response.ok) {
 
-        // Show welcome screen
-        if (welcomeScreen) {
-            welcomeScreen.style.display = "";
+            throw new Error(
+                "Failed to start new chat"
+            );
         }
 
-        // Clear input
+        const chatContainer =
+            getChatContainer();
+
+        if (chatContainer) {
+
+            const messages =
+                chatContainer.querySelectorAll(
+                    ".message"
+                );
+
+            messages.forEach(
+                message =>
+                    message.remove()
+            );
+        }
+
+        const welcomeScreen =
+            getWelcomeScreen();
+
+        if (welcomeScreen) {
+
+            welcomeScreen.style.display =
+                "";
+        }
+
+        const messageInput =
+            getMessageInput();
+
         if (messageInput) {
-            messageInput.value = "";
+
+            messageInput.value =
+                "";
+
+            messageInput.style.height =
+                "auto";
         }
 
     } catch (error) {
@@ -371,33 +490,40 @@ async function newChat() {
 
 
 // ============================================================
-// SHOW LONG-TERM MEMORY
+// SHOW MEMORY
 // ============================================================
 
 async function showMemory() {
 
     const modal =
-        document.getElementById("memoryModal");
+        document.getElementById(
+            "memoryModal"
+        );
 
     const memoryList =
-        document.getElementById("memoryList");
+        document.getElementById(
+            "memoryList"
+        );
 
     if (!modal || !memoryList) {
         return;
     }
 
-    modal.style.display = "flex";
+    modal.style.display =
+        "flex";
 
     memoryList.innerHTML =
         "<p>Loading memories...</p>";
 
     try {
 
-        const response = await fetch(
-            `${API_URL}/long-term-memory`
-        );
+        const response =
+            await fetch(
+                `${API_URL}/long-term-memory`
+            );
 
         if (!response.ok) {
+
             throw new Error(
                 "Failed to load memories"
             );
@@ -407,9 +533,12 @@ async function showMemory() {
             await response.json();
 
         const memories =
-            data.long_term_memory || [];
+            data.long_term_memory ||
+            [];
 
-        if (memories.length === 0) {
+        if (
+            memories.length === 0
+        ) {
 
             memoryList.innerHTML =
                 "<p>Asta has no saved memories yet.</p>";
@@ -417,21 +546,27 @@ async function showMemory() {
             return;
         }
 
-        memoryList.innerHTML = "";
+        memoryList.innerHTML =
+            "";
 
         memories.forEach(
             memory => {
 
                 const item =
-                    document.createElement("div");
+                    document.createElement(
+                        "div"
+                    );
 
                 item.className =
                     "memory-item";
 
                 item.innerHTML = `
                     <div class="memory-text">
-                        ${escapeHtml(memory.memory)}
+                        ${escapeHtml(
+                            memory.memory
+                        )}
                     </div>
+
                     <div class="memory-date">
                         ${escapeHtml(
                             memory.created_at || ""
@@ -439,7 +574,9 @@ async function showMemory() {
                     </div>
                 `;
 
-                memoryList.appendChild(item);
+                memoryList.appendChild(
+                    item
+                );
             }
         );
 
@@ -457,22 +594,26 @@ async function showMemory() {
 
 
 // ============================================================
-// CLOSE MEMORY MODAL
+// CLOSE MEMORY
 // ============================================================
 
 function closeMemory() {
 
     const modal =
-        document.getElementById("memoryModal");
+        document.getElementById(
+            "memoryModal"
+        );
 
     if (modal) {
-        modal.style.display = "none";
+
+        modal.style.display =
+            "none";
     }
 }
 
 
 // ============================================================
-// CLOSE MODAL WHEN CLICKING OUTSIDE
+// CLOSE MODAL OUTSIDE CLICK
 // ============================================================
 
 window.addEventListener(
@@ -480,12 +621,15 @@ window.addEventListener(
     function(event) {
 
         const modal =
-            document.getElementById("memoryModal");
+            document.getElementById(
+                "memoryModal"
+            );
 
         if (
             modal &&
             event.target === modal
         ) {
+
             closeMemory();
         }
     }
@@ -493,7 +637,7 @@ window.addEventListener(
 
 
 // ============================================================
-// CLEAR LONG-TERM MEMORY
+// CLEAR MEMORY
 // ============================================================
 
 async function clearMemory() {
@@ -509,14 +653,16 @@ async function clearMemory() {
 
     try {
 
-        const response = await fetch(
-            `${API_URL}/clear-memory`,
-            {
-                method: "DELETE"
-            }
-        );
+        const response =
+            await fetch(
+                `${API_URL}/clear-memory`,
+                {
+                    method: "DELETE"
+                }
+            );
 
         if (!response.ok) {
+
             throw new Error(
                 "Failed to clear memory"
             );
@@ -549,20 +695,33 @@ async function clearMemory() {
 async function checkHealth() {
 
     const statusElement =
-        document.getElementById("systemStatus");
+        document.getElementById(
+            "systemStatus"
+        );
 
     try {
 
-        const response = await fetch(
-            `${API_URL}/health`
-        );
+        const response =
+            await fetch(
+                `${API_URL}/health`
+            );
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Health check failed"
+            );
+        }
 
         const data =
             await response.json();
 
-        if (data.gemini_configured) {
+        if (
+            data.gemini_configured
+        ) {
 
             if (statusElement) {
+
                 statusElement.textContent =
                     "🟢 Asta is online";
             }
@@ -571,6 +730,7 @@ async function checkHealth() {
         }
 
         if (statusElement) {
+
             statusElement.textContent =
                 "🟡 AI configuration incomplete";
         }
@@ -585,6 +745,7 @@ async function checkHealth() {
         );
 
         if (statusElement) {
+
             statusElement.textContent =
                 "🔴 Asta is offline";
         }
@@ -595,33 +756,39 @@ async function checkHealth() {
 
 
 // ============================================================
-// SYSTEM STATUS BUTTON
+// SYSTEM STATUS
 // ============================================================
 
 async function showSystemStatus() {
 
     try {
 
-        const response = await fetch(
-            `${API_URL}/health`
-        );
+        const response =
+            await fetch(
+                `${API_URL}/health`
+            );
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Health check failed"
+            );
+        }
 
         const data =
             await response.json();
 
         let message = "";
 
-        if (data.api === "online") {
-            message += "API: 🟢 Online\n";
-        } else {
-            message += "API: 🔴 Offline\n";
-        }
+        message +=
+            data.api === "online"
+                ? "API: 🟢 Online\n"
+                : "API: 🔴 Offline\n";
 
-        if (data.gemini_configured) {
-            message += "Gemini: 🟢 Connected\n";
-        } else {
-            message += "Gemini: 🔴 Not configured\n";
-        }
+        message +=
+            data.gemini_configured
+                ? "Gemini: 🟢 Connected\n"
+                : "Gemini: 🔴 Not configured\n";
 
         message +=
             `Model: ${data.model}`;
@@ -629,6 +796,11 @@ async function showSystemStatus() {
         alert(message);
 
     } catch (error) {
+
+        console.error(
+            "System status error:",
+            error
+        );
 
         alert(
             "❌ Unable to connect to Asta."
@@ -638,14 +810,57 @@ async function showSystemStatus() {
 
 
 // ============================================================
-// INITIAL HEALTH CHECK
+// DOM READY
 // ============================================================
 
 document.addEventListener(
     "DOMContentLoaded",
     function() {
 
+        const messageInput =
+            getMessageInput();
+
+        if (messageInput) {
+
+            messageInput.addEventListener(
+                "input",
+                function() {
+
+                    this.style.height =
+                        "auto";
+
+                    this.style.height =
+                        Math.min(
+                            this.scrollHeight,
+                            200
+                        ) + "px";
+                }
+            );
+
+            // Also support Enter without relying
+            // only on HTML onkeydown
+            messageInput.addEventListener(
+                "keydown",
+                function(event) {
+
+                    if (
+                        event.key === "Enter" &&
+                        !event.shiftKey
+                    ) {
+
+                        event.preventDefault();
+
+                        sendMessage();
+                    }
+                }
+            );
+        }
+
         checkHealth();
+
+        console.log(
+            "Asta frontend loaded successfully."
+        );
 
     }
 );
